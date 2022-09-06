@@ -28,16 +28,6 @@ def fn_videos(
     seed_1,
     prompt_2,
     seed_2,
-    prompt_3,
-    seed_3,
-    prompt_4,
-    seed_4,
-    prompt_5,
-    seed_5,
-    prompt_6,
-    seed_6,
-    prompt_7,
-    seed_7,
     scheduler,
     guidance_scale,
     num_inference_steps,
@@ -47,8 +37,8 @@ def fn_videos(
     use_lerp_for_text,
     name,
 ):
-    prompts = [prompt_1, prompt_2, prompt_3, prompt_4, prompt_5, prompt_6, prompt_7]
-    seeds = [seed_1, seed_2, seed_3, seed_4, seed_5, seed_6, seed_7]
+    prompts = [prompt_1, prompt_2]
+    seeds = [seed_1, seed_2]
 
     prompts = [x for x in prompts if x.strip()]
     seeds = seeds[: len(prompts)]
