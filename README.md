@@ -24,7 +24,7 @@ The app is built with [Gradio](https://gradio.app/), which allows you to interac
 2. Generate videos using the "Videos" tab
     - Using the images you found from the step above, provide the prompts/seeds you recorded
     - Set the `num_walk_steps` - for testing you can use a small number like 3 or 5, but to get great results you'll want to use something larger (60-200 steps). 
-    - You can (and should) use the `name` input to separate out where the images/videos are saved. (Note that currently ffmpeg will not overwrite if you already made a video with the same name. You'll have to use ffmpeg to create the video yourself if the app fails to do so.)
+    - You can set the `output_dir` to the directory you wish to save to
 
 ### Python Package
 
@@ -42,7 +42,7 @@ Authenticate with Hugging Face
 huggingface-cli login
 ```
 
-#### Usage
+#### Programatic Usage
 
 ```python
 from stable_diffusion_videos import walk
@@ -61,6 +61,14 @@ walk(
     use_lerp_for_text=True,  # Use lerp for text embeddings instead of slerp
     do_loop=False,           # Change to True if you want last prompt to loop back to first prompt
 )
+```
+
+#### Run the App Locally
+
+```python
+from stable_diffusion_videos import interface
+
+interface.launch()
 ```
 
 ## Credits
