@@ -77,9 +77,9 @@ interface_videos = gr.Interface(
         gr.Checkbox(False),
         gr.Checkbox(False),
         gr.Textbox(
-            "stable_diffusion_video",
+            "dreams",
             placeholder=(
-                "Name of this experiment. Change to avoid overwriting previous outputs"
+                "Folder where outputs will be saved. Each output will be saved in a new folder."
             ),
         ),
     ],
