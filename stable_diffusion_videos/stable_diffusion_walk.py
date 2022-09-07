@@ -72,9 +72,9 @@ def walk(
     make_video=False,
     use_lerp_for_text=False,
     scheduler="klms",  # choices: default, ddim, klms
-#     disable_tqdm=False,
+    disable_tqdm=False,
 ):
-    # pipeline.set_progress_bar_config(disable=disable_tqdm)
+    pipeline.set_progress_bar_config(disable=disable_tqdm)
 
     pipeline.scheduler = SCHEDULERS[scheduler]
 
