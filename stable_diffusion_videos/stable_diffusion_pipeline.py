@@ -219,3 +219,16 @@ class StableDiffusionPipeline(DiffusionPipeline):
             with torch.no_grad():
                 embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return embed
+
+    def progress_bar(self, iterable):
+        if not hasattr(self, "_progress_bar_config"):
+            self._progress_bar_config = {}
+        elif not isinstance(self._progress_bar_config, dict):
+            raise ValueError(
+                f"`self._progress_bar_config` should be of type `dict`, but is {type(self._progress_bar_config)}."
+            )
+
+        return tqdm(iterable, **self._progress_bar_config)
+
+    def set_progress_bar_config(self, **kwargs):
+        self._progress_bar_config = kwargs

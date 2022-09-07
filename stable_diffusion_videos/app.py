@@ -1,7 +1,7 @@
 import gradio as gr
 import torch
 
-from stable_diffusion_walk import SCHEDULERS, pipeline, walk
+from .stable_diffusion_walk import SCHEDULERS, pipeline, walk
 
 
 def fn_images(
