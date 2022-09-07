@@ -10,7 +10,7 @@ https://user-images.githubusercontent.com/32437151/188721341-6f28abf9-699b-46b0-
 
 ### The Notebook/App
 
-The above notebook allows you to generate videos by interpolating the latent space of [Stable Diffusion](https://github.com/CompVis/stable-diffusion).
+The [in-browser Colab demo](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb) allows you to generate videos by interpolating the latent space of [Stable Diffusion](https://github.com/CompVis/stable-diffusion).
 
 You can either dream up different versions of the same prompt, or morph between different text prompts (with seeds set for each for reproducibility).
 
