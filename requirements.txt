@@ -1,5 +1,5 @@
 transformers
-git+https://github.com/huggingface/diffusers@f085d2f5c6569a1c0d90327c51328622036ef76e
+diffusers @ git+https://github.com/huggingface/diffusers@f085d2f5c6569a1c0d90327c51328622036ef76e
 scipy
 fire
 gradio
