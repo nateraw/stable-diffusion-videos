@@ -30,36 +30,38 @@ The app is built with [Gradio](https://gradio.app/), which allows you to interac
 
 #### Setup
 
+Install the package
+
 ```
-git clone https://github.com/nateraw/stable-diffusion-videos
-cd stable-diffusion-videos
-pip install -r requirements.txt
+pip install stable_diffusion_videos
+```
+
+Authenticate with Hugging Face
+
+```
+huggingface-cli login
 ```
 
 #### Usage
 
-If you would prefer to use the `stable_diffusion_walk.py` script directly, you can do so by running:
+```python
+from stable_diffusion_videos import walk
 
-Run with `num_steps` set to 3 or 5 for testing, then up it to something like 60-200 for better results.
-
-```bash
-python stable_diffusion_walk.py \
-    --prompts "['a cat', 'a dog', 'a horse']" \
-    --seeds 903,123,42 \
-    --output_dir dreams \
-    --name animals_test \
-    --guidance_scale 8.5 \
-    --num_steps 5 \
-    --height 512 \
-    --width 512 \
-    --num_inference_steps 50 \
-    --scheduler klms \
-    --disable_tqdm \
-    --make_video \
-    --use_lerp_for_text \
-    --do_loop
+walk(
+    prompts=['a cat', 'a dog'],
+    seeds=[42, 1337],
+    output_dir='dreams',
+    name='animals_test',
+    guidance_scale=8.5,
+    num_steps=5,  # Change to 60-200 for better results...3-5 for testing
+    num_inference_steps=50,
+    scheduler='klms',
+    disable_tqdm=False,  # Set to True to disable tqdm progress bar
+    make_video=True,
+    use_lerp_for_text=True,  # Use lerp for text embeddings instead of slerp
+    do_loop=False,  # Change to True if you want last prompt to loop back to first prompt
+)
 ```
-
 
 ## Credits
 
