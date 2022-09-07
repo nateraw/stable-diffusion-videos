@@ -6,7 +6,7 @@ import torch
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
                                   PNDMScheduler)
 
-from stable_diffusion_pipeline import StableDiffusionPipeline
+from .stable_diffusion_pipeline import StableDiffusionPipeline
 
 pipeline = StableDiffusionPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",

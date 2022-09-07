@@ -1,5 +1,6 @@
 import inspect
 import warnings
+from tqdm.auto import tqdm
 from typing import List, Optional, Union
 
 import torch
@@ -189,7 +190,7 @@ class StableDiffusionPipeline(DiffusionPipeline):
 
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents
-        image = self.vae.decode(latents).sample
+        image = self.vae.decode(latents)
 
         image = (image / 2 + 0.5).clamp(0, 1)
         image = image.cpu().permute(0, 2, 3, 1).numpy()
@@ -219,3 +220,16 @@ class StableDiffusionPipeline(DiffusionPipeline):
             with torch.no_grad():
                 embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return embed
+
+    def progress_bar(self, iterable):
+        if not hasattr(self, "_progress_bar_config"):
+            self._progress_bar_config = {}
+        elif not isinstance(self._progress_bar_config, dict):
+            raise ValueError(
+                f"`self._progress_bar_config` should be of type `dict`, but is {type(self._progress_bar_config)}."
+            )
+
+        return tqdm(iterable, **self._progress_bar_config)
+
+    def set_progress_bar_config(self, **kwargs):
+        self._progress_bar_config = kwargs
