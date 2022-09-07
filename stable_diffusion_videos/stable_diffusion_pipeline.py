@@ -1,5 +1,6 @@
 import inspect
 import warnings
+from tqdm.auto import tqdm
 from typing import List, Optional, Union
 
 import torch
