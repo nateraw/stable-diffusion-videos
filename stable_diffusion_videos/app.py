@@ -10,9 +10,9 @@ def fn_images(
     scheduler,
     guidance_scale,
     num_inference_steps,
-    disable_tqdm,
+    # disable_tqdm,
 ):
-    pipeline.set_progress_bar_config(disable=disable_tqdm)
+    # pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]  # klms, default, ddim
     with torch.autocast("cuda"):
         return pipeline(
@@ -33,7 +33,7 @@ def fn_videos(
     num_inference_steps,
     num_walk_steps,
     do_loop,
-    disable_tqdm,
+    # disable_tqdm,
     use_lerp_for_text,
     name,
 ):
@@ -54,7 +54,7 @@ def fn_videos(
         use_lerp_for_text=use_lerp_for_text,
         name=name,
         scheduler=scheduler,
-        disable_tqdm=disable_tqdm,
+        # disable_tqdm=disable_tqdm,
     )
     return video_path
 
@@ -70,7 +70,7 @@ interface_videos = gr.Interface(
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
         gr.Slider(3, 240, 10),
-        gr.Checkbox(False),
+        # gr.Checkbox(False),
         gr.Checkbox(False),
         gr.Checkbox(False),
         gr.Textbox(
@@ -91,7 +91,7 @@ interface_images = gr.Interface(
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
-        gr.Checkbox(False),
+        # gr.Checkbox(False),
     ],
     outputs=gr.Image(type="pil"),
 )
