@@ -1,3 +1,5 @@
+import time
+
 import gradio as gr
 import torch
 
@@ -35,7 +37,7 @@ def fn_videos(
     do_loop,
     disable_tqdm,
     use_lerp_for_text,
-    name,
+    output_dir,
 ):
     prompts = [prompt_1, prompt_2]
     seeds = [seed_1, seed_2]
@@ -52,7 +54,8 @@ def fn_videos(
         num_steps=num_walk_steps,
         num_inference_steps=num_inference_steps,
         use_lerp_for_text=use_lerp_for_text,
-        name=name,
+        output_dir=output_dir,
+        name=time.strftime("%Y%m%d-%H%M%S"),
         scheduler=scheduler,
         disable_tqdm=disable_tqdm,
     )
