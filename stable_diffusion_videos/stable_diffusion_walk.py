@@ -66,7 +66,7 @@ def make_video(frame_dir, output_file_name='output.mp4', frame_filename="frame%0
         f"ffmpeg -r {fps} -i {frame_ref_path} -vcodec libx264 -crf 10 -pix_fmt yuv420p"
         f" {video_path}".split()
     )
-
+    return video_path
 
 def walk(
     prompts=["blueberry spaghetti", "strawberry spaghetti"],
@@ -193,13 +193,7 @@ def walk(
         latents_a = latents_b
 
     if make_video:
-        frame_ref_path = str(output_path / "frame%06d.jpg")
-        video_path = str(output_path / f"{name}.mp4")
-        subprocess.call(
-            f"ffmpeg -r 30 -i {frame_ref_path} -vcodec libx264 -crf 10 -pix_fmt yuv420p"
-            f" {video_path}".split()
-        )
-        return video_path
+        return make_video(output_path, f"{name}.mp4")
 
 
 class NoCheck(ModelMixin):
