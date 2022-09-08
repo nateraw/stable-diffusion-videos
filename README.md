@@ -1,6 +1,7 @@
 # stable-diffusion-videos
 
 Try it yourself in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb)
+[![Replicate](https://replicate.com/nateraw/stable-diffusion-videos/badge)](https://replicate.com/nateraw/stable-diffusion-videos)
 
 **Example** - morphing between "blueberry spaghetti" and "strawberry spaghetti"
 
