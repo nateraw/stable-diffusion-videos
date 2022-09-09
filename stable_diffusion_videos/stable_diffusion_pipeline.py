@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 from typing import List, Optional, Union
 
 import torch
+from diffusers import ModelMixin
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion.safety_checker import \
@@ -190,7 +191,7 @@ class StableDiffusionPipeline(DiffusionPipeline):
 
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents
-        image = self.vae.decode(latents)
+        image = self.vae.decode(latents).sample
 
         image = (image / 2 + 0.5).clamp(0, 1)
         image = image.cpu().permute(0, 2, 3, 1).numpy()
@@ -221,15 +222,12 @@ class StableDiffusionPipeline(DiffusionPipeline):
                 embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return embed
 
-    def progress_bar(self, iterable):
-        if not hasattr(self, "_progress_bar_config"):
-            self._progress_bar_config = {}
-        elif not isinstance(self._progress_bar_config, dict):
-            raise ValueError(
-                f"`self._progress_bar_config` should be of type `dict`, but is {type(self._progress_bar_config)}."
-            )
 
-        return tqdm(iterable, **self._progress_bar_config)
+class NoCheck(ModelMixin):
+    """Can be used in place of safety checker. Use responsibly and at your own risk."""
+    def __init__(self):
+        super().__init__()
+        self.register_parameter(name='asdf', param=torch.nn.Parameter(torch.randn(3)))
 
-    def set_progress_bar_config(self, **kwargs):
-        self._progress_bar_config = kwargs
+    def forward(self, images=None, **kwargs):
+        return images, [False]

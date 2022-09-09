@@ -107,10 +107,12 @@ __getattr__, __dir__, __all__ = _attach(
         ],
         "stable_diffusion_pipeline": [
             "StableDiffusionPipeline",
+            "NoCheck",
         ],
         "stable_diffusion_walk": [
             "walk",
             "SCHEDULERS",
+            "pipeline",
         ]
     },
 )
