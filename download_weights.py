@@ -22,4 +22,5 @@ if __name__ == "__main__":
         cache_dir="diffusers-cache",
         torch_dtype=torch.float16,
         use_auth_token=args.auth_token,
+        revision="fp16"
     )

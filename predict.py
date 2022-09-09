@@ -9,7 +9,7 @@ from diffusers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
 from PIL import Image
 from cog import BasePredictor, Input, Path
 
-from stable_diffusion_pipeline import StableDiffusionPipeline
+from stable_diffusion_videos import StableDiffusionPipeline
 
 
 MODEL_CACHE = "diffusers-cache"
@@ -25,7 +25,7 @@ class Predictor(BasePredictor):
             # scheduler=lms,
             cache_dir="diffusers-cache",
             local_files_only=True,
-            # revision="fp16",
+            revision="fp16",
             torch_dtype=torch.float16,
         ).to("cuda")
 
