@@ -94,7 +94,17 @@ Unfortunately, their code is not registered as a python package, so you have to 
 pip install git+https://github.com/xinntao/Real-ESRGAN.git
 ```
 
-Then, you'll be able to do:
+Then, you'll be able to use `upsample=True` in the `walk` function, like this:
+
+```python
+from stable_diffusion_videos import walk
+
+walk(['a cat', 'a dog'], [234, 345], upsample=True)
+```
+
+The above may cause you to run out of VRAM. No problem, you can do upsampling separately.
+
+To upsample an individual image:
 
 ```python
 from stable_diffusion_videos import PipelineRealESRGAN
