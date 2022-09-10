@@ -38,6 +38,7 @@ def fn_videos(
     disable_tqdm,
     use_lerp_for_text,
     output_dir,
+    upsample,
 ):
     prompts = [prompt_1, prompt_2]
     seeds = [seed_1, seed_2]
@@ -58,6 +59,7 @@ def fn_videos(
         name=time.strftime("%Y%m%d-%H%M%S"),
         scheduler=scheduler,
         disable_tqdm=disable_tqdm,
+        upsample=upsample
     )
     return video_path
 
@@ -66,9 +68,9 @@ interface_videos = gr.Interface(
     fn_videos,
     inputs=[
         gr.Textbox("blueberry spaghetti"),
-        gr.Slider(0, 1000, 553, step=1),
+        gr.Number(42, label='Seed 1', precision=0),
         gr.Textbox("strawberry spaghetti"),
-        gr.Slider(0, 1000, 234, step=1),
+        gr.Number(42, label='Seed 2', precision=0),
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
@@ -82,6 +84,7 @@ interface_videos = gr.Interface(
                 "Folder where outputs will be saved. Each output will be saved in a new folder."
             ),
         ),
+        gr.Checkbox(False),
     ],
     outputs=gr.Video(),
 )
@@ -90,7 +93,7 @@ interface_images = gr.Interface(
     fn_images,
     inputs=[
         gr.Textbox("blueberry spaghetti"),
-        gr.Slider(0, 1000, 553, step=1),
+        gr.Number(42, label='Seed', precision=0),
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
