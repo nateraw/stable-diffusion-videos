@@ -86,6 +86,7 @@ def walk(
     use_lerp_for_text=False,
     scheduler="klms",  # choices: default, ddim, klms
     disable_tqdm=False,
+    upsample=False,
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -105,10 +106,17 @@ def walk(
         use_lerp_for_text (bool, optional): Use LERP instead of SLERP for text embeddings when walking. Defaults to False.
         scheduler (str, optional): Which scheduler to use. Defaults to "klms". Choices are "default", "ddim", "klms".
         disable_tqdm (bool, optional): Whether to turn off the tqdm progress bars. Defaults to False.
+        upsample(bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
+            which you can do by running: `pip install git+https://github.com/xinntao/Real-ESRGAN.git`. Defaults to False.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
     """
+    if upsample:
+        from .upsampling import PipelineRealESRGAN
+
+        upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
     pipeline.set_progress_bar_config(disable=disable_tqdm)
 
     pipeline.scheduler = SCHEDULERS[scheduler]
@@ -186,7 +194,11 @@ def walk(
                     guidance_scale=guidance_scale,
                     eta=eta,
                     num_inference_steps=num_inference_steps,
+                    output_type='pil' if not upsample else 'numpy'
                 )["sample"][0]
+
+                if upsample:
+                    im = upsampling_pipeline(im)
 
             im.save(output_path / ("frame%06d.jpg" % frame_index))
             frame_index += 1

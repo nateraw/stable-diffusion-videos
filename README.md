@@ -81,3 +81,35 @@ This work built off of [a script](https://gist.github.com/karpathy/00103b0037c5a
 You can file any issues/feature requests [here](https://github.com/nateraw/stable-diffusion-videos/issues)
 
 Enjoy 🤗
+
+## Extras
+
+### Upsample with Real-ESRGAN
+
+You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)!
+
+Unfortunately, their code is not registered as a python package, so you have to do a manual installation like this:
+
+```
+pip install git+https://github.com/xinntao/Real-ESRGAN.git
+```
+
+Then, you'll be able to do:
+
+```python
+from stable_diffusion_videos import PipelineRealESRGAN
+
+pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+enhanced_image = pipe('your_file.jpg')
+```
+
+Or, to do a whole folder:
+
+```python
+from stable_diffusion_videos import PipelineRealESRGAN
+
+pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+pipe.enhance_imagefolder('path/to/images/', 'path/to/output_dir')
+```
+
+
