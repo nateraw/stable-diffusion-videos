@@ -188,7 +188,7 @@ def walk(
             latents = slerp(float(t), latents_a, latents_b)
 
             with torch.autocast("cuda"):
-                im = pipeline(
+                outputs = pipeline(
                     latents=latents,
                     text_embeddings=embeds,
                     height=height,
@@ -197,8 +197,13 @@ def walk(
                     eta=eta,
                     num_inference_steps=num_inference_steps,
                     output_type='pil' if not upsample else 'numpy'
-                )["sample"][0]
+                )
 
+                if any(outputs["nsfw_content_detected"]):
+                    # nothing to do here, don't increase frame index either
+                    continue
+
+                im = outputs["sample"][0]
                 if upsample:
                     im = upsampling_pipeline(im)
 
