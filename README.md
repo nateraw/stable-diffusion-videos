@@ -88,10 +88,10 @@ Enjoy 🤗
 
 You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)!
 
-Unfortunately, their code is not registered as a python package, so you have to do a manual installation like this:
+First, you'll need to install it...
 
 ```
-pip install git+https://github.com/xinntao/Real-ESRGAN.git
+pip install realesrgan
 ```
 
 Then, you'll be able to use `upsample=True` in the `walk` function, like this:

@@ -9,8 +9,8 @@ try:
     from basicsr.archs.rrdbnet_arch import RRDBNet
 except ImportError as e:
     raise ImportError(
-        "You tried to import realesrgan without having it installed properly. To install RealESRGAN, run:\n\n"
-        "pip install git+https://github.com/xinntao/Real-ESRGAN.git"
+        "You tried to import realesrgan without having it installed properly. To install Real-ESRGAN, run:\n\n"
+        "pip install realesrgan"
     )
 
 class PipelineRealESRGAN:
@@ -26,12 +26,22 @@ class PipelineRealESRGAN:
             half=not fp32
         )
 
-    def __call__(self, image_path, outscale=4, convert_to_pil=True):
-        # TODO - this should work on torch tensors coming out of diffusion pipeline so we can stitch these together better
-        if isinstance(image_path, (str, Path)):
-            img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    def __call__(self, image, outscale=4, convert_to_pil=True):
+        """Upsample an image array or path.
+
+        Args:
+            image (Union[np.ndarray, str]): Either a np array or an image path. np array is assumed to be in RGB format,
+                and we convert it to BGR.
+            outscale (int, optional): Amount to upscale the image. Defaults to 4.
+            convert_to_pil (bool, optional): If True, return PIL image. Otherwise, return numpy array (BGR). Defaults to True.
+
+        Returns:
+            Union[np.ndarray, PIL.Image.Image]: An upsampled version of the input image.
+        """
+        if isinstance(image, (str, Path)):
+            img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
         else:
-            img = image_path
+            img = image
             img = (img * 255).round().astype("uint8")
             img = img[:, :, ::-1]
 
@@ -44,13 +54,27 @@ class PipelineRealESRGAN:
 
     @classmethod
     def from_pretrained(cls, model_name_or_path='nateraw/real-esrgan'):
+        """Initialize a pretrained Real-ESRGAN upsampler.
+
+        Example:
+            ```python
+            >>> from stable_diffusion_videos import PipelineRealESRGAN
+            >>> pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+            >>> im_out = pipe('input_img.jpg')
+            ```
+
+        Args:
+            model_name_or_path (str, optional): The Hugging Face repo ID or path to local model. Defaults to 'nateraw/real-esrgan'.
+
+        Returns:
+            stable_diffusion_videos.PipelineRealESRGAN: An instance of `PipelineRealESRGAN` instantiated from pretrained model.
+        """
         # reuploaded form official ones mentioned here:
         # https://github.com/xinntao/Real-ESRGAN
         if Path(model_name_or_path).exists():
             file = model_name_or_path
         else:
             file = hf_hub_download(model_name_or_path, 'RealESRGAN_x4plus.pth')
-        # stable_diffusion_videos/visualize_detection_example_transformed_2.png
         return cls(file)
 
 

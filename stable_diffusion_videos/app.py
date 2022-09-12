@@ -13,16 +13,23 @@ def fn_images(
     guidance_scale,
     num_inference_steps,
     disable_tqdm,
+    upsample,
 ):
+    if upsample:
+        from .upsampling import PipelineRealESRGAN
+
+        upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]  # klms, default, ddim
     with torch.autocast("cuda"):
-        return pipeline(
+        img = pipeline(
             prompt,
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
             generator=torch.Generator(device=pipeline.device).manual_seed(seed),
         )["sample"][0]
+        return img if not upsample else upsampling_pipeline(img)
 
 
 def fn_videos(
@@ -97,6 +104,7 @@ interface_images = gr.Interface(
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
+        gr.Checkbox(False),
         gr.Checkbox(False),
     ],
     outputs=gr.Image(type="pil"),
