@@ -81,3 +81,45 @@ This work built off of [a script](https://gist.github.com/karpathy/00103b0037c5a
 You can file any issues/feature requests [here](https://github.com/nateraw/stable-diffusion-videos/issues)
 
 Enjoy 🤗
+
+## Extras
+
+### Upsample with Real-ESRGAN
+
+You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)!
+
+First, you'll need to install it...
+
+```
+pip install realesrgan
+```
+
+Then, you'll be able to use `upsample=True` in the `walk` function, like this:
+
+```python
+from stable_diffusion_videos import walk
+
+walk(['a cat', 'a dog'], [234, 345], upsample=True)
+```
+
+The above may cause you to run out of VRAM. No problem, you can do upsampling separately.
+
+To upsample an individual image:
+
+```python
+from stable_diffusion_videos import PipelineRealESRGAN
+
+pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+enhanced_image = pipe('your_file.jpg')
+```
+
+Or, to do a whole folder:
+
+```python
+from stable_diffusion_videos import PipelineRealESRGAN
+
+pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+pipe.enhance_imagefolder('path/to/images/', 'path/to/output_dir')
+```
+
+

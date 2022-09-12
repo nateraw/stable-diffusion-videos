@@ -14,6 +14,9 @@ def get_version() -> str:
 with open("requirements.txt", "r") as f:
     requirements = f.read().splitlines()
 
+extras = {}
+extras['realesrgan'] = ['realesrgan==0.2.5.0']
+
 setup(
     name="stable_diffusion_videos",
     version=get_version(),
@@ -24,5 +27,6 @@ setup(
     ),
     license="Apache",
     install_requires=requirements,
+    extras_require=extras,
     packages=find_packages(),
 )

@@ -113,6 +113,9 @@ __getattr__, __dir__, __all__ = _attach(
             "walk",
             "SCHEDULERS",
             "pipeline",
+        ],
+        "upsampling": [
+            "PipelineRealESRGAN"
         ]
     },
 )

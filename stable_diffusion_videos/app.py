@@ -13,16 +13,24 @@ def fn_images(
     guidance_scale,
     num_inference_steps,
     disable_tqdm,
+    upsample,
 ):
+    if upsample:
+        from .upsampling import PipelineRealESRGAN
+
+        upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]  # klms, default, ddim
     with torch.autocast("cuda"):
-        return pipeline(
+        img = pipeline(
             prompt,
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
             generator=torch.Generator(device=pipeline.device).manual_seed(seed),
+            output_type='pil' if not upsample else 'numpy',
         )["sample"][0]
+        return img if not upsample else upsampling_pipeline(img)
 
 
 def fn_videos(
@@ -38,6 +46,7 @@ def fn_videos(
     disable_tqdm,
     use_lerp_for_text,
     output_dir,
+    upsample,
 ):
     prompts = [prompt_1, prompt_2]
     seeds = [seed_1, seed_2]
@@ -58,6 +67,7 @@ def fn_videos(
         name=time.strftime("%Y%m%d-%H%M%S"),
         scheduler=scheduler,
         disable_tqdm=disable_tqdm,
+        upsample=upsample
     )
     return video_path
 
@@ -66,9 +76,9 @@ interface_videos = gr.Interface(
     fn_videos,
     inputs=[
         gr.Textbox("blueberry spaghetti"),
-        gr.Slider(0, 1000, 553, step=1),
+        gr.Number(42, label='Seed 1', precision=0),
         gr.Textbox("strawberry spaghetti"),
-        gr.Slider(0, 1000, 234, step=1),
+        gr.Number(42, label='Seed 2', precision=0),
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
@@ -82,6 +92,7 @@ interface_videos = gr.Interface(
                 "Folder where outputs will be saved. Each output will be saved in a new folder."
             ),
         ),
+        gr.Checkbox(False),
     ],
     outputs=gr.Video(),
 )
@@ -90,10 +101,11 @@ interface_images = gr.Interface(
     fn_images,
     inputs=[
         gr.Textbox("blueberry spaghetti"),
-        gr.Slider(0, 1000, 553, step=1),
+        gr.Number(42, label='Seed', precision=0),
         gr.Dropdown(["klms", "ddim", "default"], value="klms"),
         gr.Slider(0.0, 20.0, 8.5),
         gr.Slider(1, 200, 50),
+        gr.Checkbox(False),
         gr.Checkbox(False),
     ],
     outputs=gr.Image(type="pil"),
