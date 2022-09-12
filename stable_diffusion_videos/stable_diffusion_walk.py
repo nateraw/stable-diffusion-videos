@@ -87,6 +87,7 @@ def walk(
     scheduler="klms",  # choices: default, ddim, klms
     disable_tqdm=False,
     upsample=False,
+    fps=30,
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -106,8 +107,9 @@ def walk(
         use_lerp_for_text (bool, optional): Use LERP instead of SLERP for text embeddings when walking. Defaults to False.
         scheduler (str, optional): Which scheduler to use. Defaults to "klms". Choices are "default", "ddim", "klms".
         disable_tqdm (bool, optional): Whether to turn off the tqdm progress bars. Defaults to False.
-        upsample(bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
+        upsample (bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
             which you can do by running: `pip install git+https://github.com/xinntao/Real-ESRGAN.git`. Defaults to False.
+        fps (int, optional): The frames per second (fps) that you want the video to use. Does nothing if make_video is False. Defaults to 30.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -207,7 +209,7 @@ def walk(
         latents_a = latents_b
 
     if make_video:
-        return make_video_ffmpeg(output_path, f"{name}.mp4")
+        return make_video_ffmpeg(output_path, f"{name}.mp4", fps=fps)
 
 
 if __name__ == "__main__":
