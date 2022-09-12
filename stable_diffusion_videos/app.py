@@ -28,6 +28,7 @@ def fn_images(
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
             generator=torch.Generator(device=pipeline.device).manual_seed(seed),
+            output_type='pil' if not upsample else 'numpy',
         )["sample"][0]
         return img if not upsample else upsampling_pipeline(img)
 
