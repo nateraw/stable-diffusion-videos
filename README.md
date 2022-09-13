@@ -119,7 +119,7 @@ Or, to do a whole folder:
 from stable_diffusion_videos import PipelineRealESRGAN
 
 pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
-pipe.enhance_imagefolder('path/to/images/', 'path/to/output_dir')
+pipe.upsample_imagefolder('path/to/images/', 'path/to/output_dir')
 ```
 
 
