@@ -88,6 +88,7 @@ def walk(
     disable_tqdm=False,
     upsample=False,
     fps=30,
+    less_vram=False,
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -110,6 +111,7 @@ def walk(
         upsample (bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
             which you can do by running: `pip install git+https://github.com/xinntao/Real-ESRGAN.git`. Defaults to False.
         fps (int, optional): The frames per second (fps) that you want the video to use. Does nothing if make_video is False. Defaults to 30.
+        less_vram (bool, optional): Allow higher resolution output on smaller GPUs. Yields same result at the expense of 10% speed. Defaults to False.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -118,6 +120,9 @@ def walk(
         from .upsampling import PipelineRealESRGAN
 
         upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
+    if less_vram:
+        pipeline.enable_attention_slicing()
 
     pipeline.set_progress_bar_config(disable=disable_tqdm)
 
