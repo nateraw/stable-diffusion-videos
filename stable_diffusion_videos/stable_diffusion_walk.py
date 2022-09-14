@@ -70,6 +70,45 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
     return video_path
 
 
+def resume(
+    output_dir="dreams",
+    name="berry_good_spaghetti",
+    disable_tqdm=False,
+):
+    """Generate video frames/a video given a list of prompts and seeds.
+
+    Args:
+        output_dir (str, optional): Root dir where images will be saved. Defaults to "dreams".
+        name (str, optional): Sub directory of output_dir to save this run's files. Defaults to "berry_good_spaghetti".
+        disable_tqdm (bool, optional): Whether to turn off the tqdm progress bars. Defaults to False.
+
+    Returns:
+        str: Path to video file saved if make_video=True, else None.
+    """
+    prompt_config_path = Path(output_dir) / name / 'prompt_config.json'
+    data = json.load(open(prompt_config_path))
+    walk(
+        prompts=data['prompts'],
+        seeds=data['seeds'],
+        num_steps=data['num_steps'],
+        output_dir=output_dir,
+        name=data['name'],
+        height=data['height'],
+        width=data['width'],
+        guidance_scale=data['guidance_scale'],
+        eta=data['eta'],
+        num_inference_steps=data['num_inference_steps'],
+        do_loop=data['do_loop'],
+        make_video=data['make_video'],
+        use_lerp_for_text=data['use_lerp_for_text'],
+        scheduler=data['scheduler'],
+        disable_tqdm=disable_tqdm,
+        upsample=data['upsample'],
+        fps=data['fps'],
+    )
+    return
+
+
 def walk(
     prompts=["blueberry spaghetti", "strawberry spaghetti"],
     seeds=[42, 123],
@@ -131,27 +170,32 @@ def walk(
     output_path = Path(output_dir) / name
     output_path.mkdir(exist_ok=True, parents=True)
 
-    # Write prompt info to file in output dir so we can keep track of what we did
+    # Write prompt info to file in output dir so we can keep track of what we did, if it doesn't exist
     prompt_config_path = output_path / 'prompt_config.json'
-    prompt_config_path.write_text(
-        json.dumps(
-            dict(
-                prompts=prompts,
-                seeds=seeds,
-                num_steps=num_steps,
-                name=name,
-                guidance_scale=guidance_scale,
-                eta=eta,
-                num_inference_steps=num_inference_steps,
-                do_loop=do_loop,
-                make_video=make_video,
-                use_lerp_for_text=use_lerp_for_text,
-                scheduler=scheduler
-            ),
-            indent=2,
-            sort_keys=False,
+    if not prompt_config_path.is_file():
+        prompt_config_path.write_text(
+            json.dumps(
+                dict(
+                    prompts=prompts,
+                    seeds=seeds,
+                    num_steps=num_steps,
+                    name=name,
+                    guidance_scale=guidance_scale,
+                    eta=eta,
+                    num_inference_steps=num_inference_steps,
+                    do_loop=do_loop,
+                    make_video=make_video,
+                    use_lerp_for_text=use_lerp_for_text,
+                    scheduler=scheduler,
+                    upsample=upsample,
+                    fps=fps,
+                    height=height,
+                    width=width,
+                ),
+                indent=2,
+                sort_keys=False,
+            )
         )
-    )
 
     assert len(prompts) == len(seeds)
 
@@ -186,11 +230,18 @@ def walk(
             if do_print_progress:
                 print(f"COUNT: {frame_index+1}/{len(seeds)*num_steps}")
 
+            imgname = output_path / ("frame%06d.jpg" % frame_index)
+            frame_index += 1
+
             if use_lerp_for_text:
                 embeds = torch.lerp(embeds_a, embeds_b, float(t))
             else:
                 embeds = slerp(float(t), embeds_a, embeds_b)
             latents = slerp(float(t), latents_a, latents_b)
+
+            if imgname.is_file():
+                print("Skip ", frame_index, end='\r')
+                continue
 
             with torch.autocast("cuda"):
                 im = pipeline(
@@ -207,8 +258,7 @@ def walk(
                 if upsample:
                     im = upsampling_pipeline(im)
 
-            im.save(output_path / ("frame%06d.jpg" % frame_index))
-            frame_index += 1
+            im.save(imgname)
 
         embeds_a = embeds_b
         latents_a = latents_b
