@@ -74,6 +74,10 @@ def resume(
     output_dir="dreams",
     name="berry_good_spaghetti",
     disable_tqdm=False,
+    height=512,
+    width=512,
+    upsample=False,
+    fps=30,
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -81,6 +85,15 @@ def resume(
         output_dir (str, optional): Root dir where images will be saved. Defaults to "dreams".
         name (str, optional): Sub directory of output_dir to save this run's files. Defaults to "berry_good_spaghetti".
         disable_tqdm (bool, optional): Whether to turn off the tqdm progress bars. Defaults to False.
+        height (int, optional): Height of image to generate. Defaults to 512.
+            ONLY USED IF NOT SAVED.
+        width (int, optional): Width of image to generate. Defaults to 512.
+            ONLY USED IF NOT SAVED.
+        upsample (bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
+            which you can do by running: `pip install git+https://github.com/xinntao/Real-ESRGAN.git`.
+            Defaults to False. ONLY USED IF NOT SAVED.
+        fps (int, optional): The frames per second (fps) that you want the video to use. Does nothing if make_video is False.
+            Defaults to 30. ONLY USED IF NOT SAVED.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -93,8 +106,8 @@ def resume(
         num_steps=data['num_steps'],
         output_dir=output_dir,
         name=data['name'],
-        height=data['height'],
-        width=data['width'],
+        height=data['height'] if not data.has_key('height') else height,
+        width=data['width'] if not data.has_key('height') else width,
         guidance_scale=data['guidance_scale'],
         eta=data['eta'],
         num_inference_steps=data['num_inference_steps'],
@@ -103,8 +116,8 @@ def resume(
         use_lerp_for_text=data['use_lerp_for_text'],
         scheduler=data['scheduler'],
         disable_tqdm=disable_tqdm,
-        upsample=data['upsample'],
-        fps=data['fps'],
+        upsample=data['upsample'] if not data.has_key('upsample') else upsample,
+        fps=data['fps'] if not data.has_key('height') else fps,
     )
     return
 
