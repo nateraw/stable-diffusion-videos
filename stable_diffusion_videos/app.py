@@ -3,7 +3,7 @@ import time
 import gradio as gr
 import torch
 
-from .stable_diffusion_walk import SCHEDULERS, pipeline, walk
+from .stable_diffusion_walk import SCHEDULERS, pipeline, walk, resume
 
 
 def fn_images(
