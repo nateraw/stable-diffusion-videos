@@ -106,8 +106,8 @@ def resume(
         num_steps=data['num_steps'],
         output_dir=output_dir,
         name=data['name'],
-        height=data['height'] if not data.has_key('height') else height,
-        width=data['width'] if not data.has_key('height') else width,
+        height=data['height'] if 'height' in data else height,
+        width=data['width'] if 'width' in data else width,
         guidance_scale=data['guidance_scale'],
         eta=data['eta'],
         num_inference_steps=data['num_inference_steps'],
@@ -116,8 +116,8 @@ def resume(
         use_lerp_for_text=data['use_lerp_for_text'],
         scheduler=data['scheduler'],
         disable_tqdm=disable_tqdm,
-        upsample=data['upsample'] if not data.has_key('upsample') else upsample,
-        fps=data['fps'] if not data.has_key('height') else fps,
+        upsample=data['upsample'] if 'upsample' in data else upsample,
+        fps=data['fps'] if 'fps' in data else fps,
     )
     return
 
