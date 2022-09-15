@@ -252,7 +252,7 @@ def walk(
                 embeds = slerp(float(t), embeds_a, embeds_b)
             latents = slerp(float(t), latents_a, latents_b)
 
-            if imgname.is_file():
+            if frame_filepath.is_file():
                 print("Skip ", frame_index, end='\r')
                 continue
 
