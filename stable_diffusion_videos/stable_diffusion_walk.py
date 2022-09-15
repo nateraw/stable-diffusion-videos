@@ -271,7 +271,7 @@ def walk(
                 if upsample:
                     im = upsampling_pipeline(im)
 
-            im.save(imgname)
+            im.save(frame_filepath)
 
         embeds_a = embeds_b
         latents_a = latents_b
