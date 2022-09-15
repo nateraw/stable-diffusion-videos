@@ -243,7 +243,7 @@ def walk(
             if do_print_progress:
                 print(f"COUNT: {frame_index+1}/{len(seeds)*num_steps}")
 
-            imgname = output_path / ("frame%06d.jpg" % frame_index)
+            frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
             frame_index += 1
 
             if use_lerp_for_text:
