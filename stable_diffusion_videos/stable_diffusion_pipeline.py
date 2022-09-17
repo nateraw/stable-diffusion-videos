@@ -12,6 +12,9 @@ from diffusers.pipelines.stable_diffusion.safety_checker import \
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
                                   PNDMScheduler)
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
+from contextlib import nullcontext
+
+from .devices import choose_torch_device
 
 
 class StableDiffusionPipeline(DiffusionPipeline):
@@ -89,7 +92,7 @@ class StableDiffusionPipeline(DiffusionPipeline):
 
             # Set device as before (to be removed in 0.3.0)
             if device is None:
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                device = choose_torch_device()
             self.to(device)
 
         if text_embeddings is None:
@@ -237,7 +240,11 @@ class StableDiffusionPipeline(DiffusionPipeline):
 
     def embed_text(self, text):
         """Helper to embed some text"""
-        with torch.autocast("cuda"):
+        device = choose_torch_device()
+        precision_scope = torch.autocast
+        if device in ['mps', 'cpu']:
+            precision_scope = nullcontext
+        with precision_scope(device):
             text_input = self.tokenizer(
                 text,
                 padding="max_length",

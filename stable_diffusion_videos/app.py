@@ -4,6 +4,7 @@ import gradio as gr
 import torch
 
 from .stable_diffusion_walk import SCHEDULERS, pipeline, walk
+from .devices import choose_torch_device
 
 
 def fn_images(
@@ -22,12 +23,15 @@ def fn_images(
 
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]  # klms, default, ddim
-    with torch.autocast("cuda"):
+
+    # mps is not supported by generator pipeline
+    device = pipeline.device if pipeline.device in ['mps'] else 'cpu'
+    with torch.autocast(choose_torch_device()):
         img = pipeline(
             prompt,
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
-            generator=torch.Generator(device=pipeline.device).manual_seed(seed),
+            #generator=torch.Generator(device=device).manual_seed(seed),
             output_type='pil' if not upsample else 'numpy',
         )["sample"][0]
         return img if not upsample else upsampling_pipeline(img)

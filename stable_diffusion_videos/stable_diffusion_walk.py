@@ -7,15 +7,21 @@ import torch
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
                                   PNDMScheduler)
 from diffusers import ModelMixin
+from contextlib import nullcontext
 
 from .stable_diffusion_pipeline import StableDiffusionPipeline
+from .devices import choose_torch_device
 
+
+device = choose_torch_device()
+revision = "fp16" if device not in ["mps"] else None
+torch_dtype = torch.float16 if device not in ["mps"] else torch.float32
 pipeline = StableDiffusionPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     use_auth_token=True,
-    torch_dtype=torch.float16,
-    revision="fp16",
-).to("cuda")
+    torch_dtype=torch_dtype,
+    revision=revision,
+).to(device)
 
 default_scheduler = PNDMScheduler(
     beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
@@ -159,10 +165,14 @@ def walk(
     embeds_a = pipeline.embed_text(first_prompt)
 
     first_seed, *seeds = seeds
+
+    # mps is not supported by generator pipeline
+    device = pipeline.device if pipeline.device in ['mps'] else 'cpu'
+
     latents_a = torch.randn(
         (1, pipeline.unet.in_channels, height // 8, width // 8),
         device=pipeline.device,
-        generator=torch.Generator(device=pipeline.device).manual_seed(first_seed),
+        generator=torch.Generator(device=device).manual_seed(first_seed),
     )
 
     if do_loop:
@@ -175,10 +185,12 @@ def walk(
         embeds_b = pipeline.embed_text(prompt)
 
         # Latent Noise
+        # mps is not supported by generator pipeline
+        device = pipeline.device if pipeline.device in ['mps'] else 'cpu'
         latents_b = torch.randn(
             (1, pipeline.unet.in_channels, height // 8, width // 8),
             device=pipeline.device,
-            generator=torch.Generator(device=pipeline.device).manual_seed(seed),
+            generator=torch.Generator(device=device).manual_seed(seed),
         )
 
         for i, t in enumerate(np.linspace(0, 1, num_steps)):
@@ -192,7 +204,11 @@ def walk(
                 embeds = slerp(float(t), embeds_a, embeds_b)
             latents = slerp(float(t), latents_a, latents_b)
 
-            with torch.autocast("cuda"):
+            device = choose_torch_device()
+            precision_scope = torch.autocast
+            if device in ['mps', 'cpu']:
+                precision_scope = nullcontext
+            with precision_scope(device):
                 im = pipeline(
                     latents=latents,
                     text_embeddings=embeds,
