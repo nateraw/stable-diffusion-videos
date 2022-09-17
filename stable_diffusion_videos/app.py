@@ -24,14 +24,19 @@ def fn_images(
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]  # klms, default, ddim
 
+    device = pipeline.device if pipeline.device in ['mps'] else 'cpu'
+    precision_scope = torch.autocast
+    if pipeline.device in ['mps', 'cpu']:
+        precision_scope = nullcontext
     # mps is not supported by generator pipeline
     device = pipeline.device if pipeline.device in ['mps'] else 'cpu'
-    with torch.autocast(choose_torch_device()):
+
+    with precision_scope(device):
         img = pipeline(
             prompt,
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
-            #generator=torch.Generator(device=device).manual_seed(seed),
+            generator=torch.Generator(device=device).manual_seed(seed),
             output_type='pil' if not upsample else 'numpy',
         )["sample"][0]
         return img if not upsample else upsampling_pipeline(img)
