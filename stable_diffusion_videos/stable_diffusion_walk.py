@@ -89,6 +89,7 @@ def walk(
     upsample=False,
     fps=30,
     less_vram=False,
+    resume=False
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -112,6 +113,8 @@ def walk(
             which you can do by running: `pip install git+https://github.com/xinntao/Real-ESRGAN.git`. Defaults to False.
         fps (int, optional): The frames per second (fps) that you want the video to use. Does nothing if make_video is False. Defaults to 30.
         less_vram (bool, optional): Allow higher resolution output on smaller GPUs. Yields same result at the expense of 10% speed. Defaults to False.
+        resume (bool, optional): When set to True, resume from provided '<output_dir>/<name>' path. Useful if your run was terminated
+            part of the way through.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -124,34 +127,68 @@ def walk(
     if less_vram:
         pipeline.enable_attention_slicing()
 
-    pipeline.set_progress_bar_config(disable=disable_tqdm)
-
-    pipeline.scheduler = SCHEDULERS[scheduler]
-
     output_path = Path(output_dir) / name
     output_path.mkdir(exist_ok=True, parents=True)
-
-    # Write prompt info to file in output dir so we can keep track of what we did
     prompt_config_path = output_path / 'prompt_config.json'
-    prompt_config_path.write_text(
-        json.dumps(
-            dict(
-                prompts=prompts,
-                seeds=seeds,
-                num_steps=num_steps,
-                name=name,
-                guidance_scale=guidance_scale,
-                eta=eta,
-                num_inference_steps=num_inference_steps,
-                do_loop=do_loop,
-                make_video=make_video,
-                use_lerp_for_text=use_lerp_for_text,
-                scheduler=scheduler
-            ),
-            indent=2,
-            sort_keys=False,
+
+    if not resume:
+        # Write prompt info to file in output dir so we can keep track of what we did
+        prompt_config_path.write_text(
+            json.dumps(
+                dict(
+                    prompts=prompts,
+                    seeds=seeds,
+                    num_steps=num_steps,
+                    name=name,
+                    guidance_scale=guidance_scale,
+                    eta=eta,
+                    num_inference_steps=num_inference_steps,
+                    do_loop=do_loop,
+                    make_video=make_video,
+                    use_lerp_for_text=use_lerp_for_text,
+                    scheduler=scheduler,
+                    upsample=upsample,
+                    fps=fps,
+                    height=height,
+                    width=width,
+                ),
+                indent=2,
+                sort_keys=False,
+            )
         )
-    )
+    else:
+        # When resuming, we load all available info from existing prompt config, using kwargs passed in where necessary
+        if not prompt_config_path.exists():
+            raise FileNotFoundError(f"You specified resume=True, but no prompt config file was found at {prompt_config_path}")
+
+        data = json.load(open(prompt_config_path))
+        prompts = data['prompts']
+        seeds = data['seeds']
+        num_steps = data['num_steps']
+        height = data['height'] if 'height' in data else height
+        width = data['width'] if 'width' in data else width
+        guidance_scale = data['guidance_scale']
+        eta = data['eta']
+        num_inference_steps = data['num_inference_steps']
+        do_loop = data['do_loop']
+        make_video = data['make_video']
+        use_lerp_for_text = data['use_lerp_for_text']
+        scheduler = data['scheduler']
+        disable_tqdm=disable_tqdm
+        upsample = data['upsample'] if 'upsample' in data else upsample
+        fps = data['fps'] if 'fps' in data else fps
+
+        resume_step = int(sorted(output_path.glob("frame*.jpg"))[-1].stem[5:])
+        print(f"\nResuming {output_path} from step {resume_step}...")
+
+
+    if upsample:
+        from .upsampling import PipelineRealESRGAN
+
+        upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
+    pipeline.set_progress_bar_config(disable=disable_tqdm)
+    pipeline.scheduler = SCHEDULERS[scheduler]
 
     assert len(prompts) == len(seeds)
 
@@ -182,9 +219,16 @@ def walk(
         )
 
         for i, t in enumerate(np.linspace(0, 1, num_steps)):
-            do_print_progress = (i == 0) or ((frame_index + 1) % 20 == 0)
+
+            frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
+            frame_index += 1
+
+            if resume and frame_filepath.is_file():
+                continue
+
+            do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
             if do_print_progress:
-                print(f"COUNT: {frame_index+1}/{len(seeds)*num_steps}")
+                print(f"COUNT: {frame_index}/{len(seeds)*num_steps}")
 
             if use_lerp_for_text:
                 embeds = torch.lerp(embeds_a, embeds_b, float(t))
@@ -207,8 +251,7 @@ def walk(
                 if upsample:
                     im = upsampling_pipeline(im)
 
-            im.save(output_path / ("frame%06d.jpg" % frame_index))
-            frame_index += 1
+            im.save(frame_filepath)
 
         embeds_a = embeds_b
         latents_a = latents_b
