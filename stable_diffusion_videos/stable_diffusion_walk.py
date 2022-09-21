@@ -274,7 +274,7 @@ def walk(
                 else:
                     images = outputs
             for image in images:
-                frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
+                frame_filepath = output_path / ("frame%06d.png" % frame_index)
                 image.save(frame_filepath)
                 frame_index += 1
 
