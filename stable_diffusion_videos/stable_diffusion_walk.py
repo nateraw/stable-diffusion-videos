@@ -89,7 +89,8 @@ def walk(
     upsample=False,
     fps=30,
     less_vram=False,
-    resume=False
+    resume=False,
+    batch_size=1
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -115,6 +116,8 @@ def walk(
         less_vram (bool, optional): Allow higher resolution output on smaller GPUs. Yields same result at the expense of 10% speed. Defaults to False.
         resume (bool, optional): When set to True, resume from provided '<output_dir>/<name>' path. Useful if your run was terminated
             part of the way through.
+        batch_size (int, optional): Number of examples per batch fed to pipeline. Increase this until you
+            run out of VRAM. Defaults to 1.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -218,17 +221,14 @@ def walk(
             generator=torch.Generator(device=pipeline.device).manual_seed(seed),
         )
 
+        latents_batch, embeds_batch = None, None
         for i, t in enumerate(np.linspace(0, 1, num_steps)):
 
             frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
-            frame_index += 1
 
             if resume and frame_filepath.is_file():
+                frame_index += 1
                 continue
-
-            do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
-            if do_print_progress:
-                print(f"COUNT: {frame_index}/{len(seeds)*num_steps}")
 
             if use_lerp_for_text:
                 embeds = torch.lerp(embeds_a, embeds_b, float(t))
@@ -236,22 +236,48 @@ def walk(
                 embeds = slerp(float(t), embeds_a, embeds_b)
             latents = slerp(float(t), latents_a, latents_b)
 
+            embeds_batch = embeds if embeds_batch is None else torch.cat([embeds_batch, embeds])
+            latents_batch = latents if latents_batch is None else torch.cat([latents_batch, latents])
+
+            del embeds
+            del latents
+            torch.cuda.empty_cache()
+
+            batch_is_ready = embeds_batch.shape[0] == batch_size or t == 1.0
+            if not batch_is_ready:
+                continue
+
+            do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
+            if do_print_progress:
+                print(f"COUNT: {frame_index}/{len(seeds)*num_steps}")
+
             with torch.autocast("cuda"):
-                im = pipeline(
-                    latents=latents,
-                    text_embeddings=embeds,
+                outputs = pipeline(
+                    latents=latents_batch,
+                    text_embeddings=embeds_batch,
                     height=height,
                     width=width,
                     guidance_scale=guidance_scale,
                     eta=eta,
                     num_inference_steps=num_inference_steps,
                     output_type='pil' if not upsample else 'numpy'
-                )["sample"][0]
+                )["sample"]  #  [0]
+
+                del embeds_batch
+                del latents_batch
+                torch.cuda.empty_cache()
+                latents_batch, embeds_batch = None, None
 
                 if upsample:
-                    im = upsampling_pipeline(im)
-
-            im.save(frame_filepath)
+                    images = []
+                    for output in outputs:
+                        images.append(upsampling_pipeline(output))
+                else:
+                    images = outputs
+            for image in images:
+                frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
+                image.save(frame_filepath)
+                frame_index += 1
 
         embeds_a = embeds_b
         latents_a = latents_b
