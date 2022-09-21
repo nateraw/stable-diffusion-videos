@@ -219,6 +219,7 @@ def walk(
 
 
     frame_index = 0
+    total_frame_count = sum(num_steps)
     for prompt, seed, num_step in zip(prompts, seeds, num_steps):
         # Text
         embeds_b = pipeline.embed_text(prompt)
@@ -257,7 +258,7 @@ def walk(
 
             do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
             if do_print_progress:
-                print(f"COUNT: {frame_index}/{sum(num_steps)}")
+                print(f"COUNT: {frame_index}/{total_frame_count}")
 
             with torch.autocast("cuda"):
                 outputs = pipeline(
