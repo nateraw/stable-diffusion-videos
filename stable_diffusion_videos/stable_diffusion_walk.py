@@ -98,7 +98,7 @@ def walk(
     Args:
         prompts (List[str], optional): List of . Defaults to ["blueberry spaghetti", "strawberry spaghetti"].
         seeds (List[int], optional): List of random seeds corresponding to given prompts.
-        num_steps (int, optional): Number of steps to walk. Increase this value to 60-200 for good results. Defaults to 5.
+        num_steps (list, optional): list of number of steps to walk during each interpolation step. Increase this value to 60-200 for good results. Defaults to [5].
         output_dir (str, optional): Root dir where images will be saved. Defaults to "dreams".
         name (str, optional): Sub directory of output_dir to save this run's files. Defaults to "berry_good_spaghetti".
         height (int, optional): Height of image to generate. Defaults to 512.
