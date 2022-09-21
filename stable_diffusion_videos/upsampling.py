@@ -78,7 +78,7 @@ class PipelineRealESRGAN:
         return cls(file)
 
 
-    def upsample_imagefolder(self, in_dir, out_dir, suffix='out', outfile_ext='.jpg'):
+    def upsample_imagefolder(self, in_dir, out_dir, suffix='out', outfile_ext='.png'):
         in_dir, out_dir = Path(in_dir), Path(out_dir)
         if not in_dir.exists():
             raise FileNotFoundError(f"Provided input directory {in_dir} does not exist")

@@ -60,7 +60,7 @@ def slerp(t, v0, v1, DOT_THRESHOLD=0.9995):
     return v2
 
 
-def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="frame%06d.jpg", fps=30):
+def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="frame%06d.png", fps=30):
     frame_ref_path = str(frame_dir / frame_filename)
     video_path = str(frame_dir / output_file_name)
     subprocess.call(
@@ -181,7 +181,7 @@ def walk(
         upsample = data['upsample'] if 'upsample' in data else upsample
         fps = data['fps'] if 'fps' in data else fps
 
-        resume_step = int(sorted(output_path.glob("frame*.jpg"))[-1].stem[5:])
+        resume_step = int(sorted(output_path.glob("frame*.png"))[-1].stem[5:])
         print(f"\nResuming {output_path} from step {resume_step}...")
 
 
@@ -224,8 +224,7 @@ def walk(
         latents_batch, embeds_batch = None, None
         for i, t in enumerate(np.linspace(0, 1, num_steps)):
 
-            frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
-
+            frame_filepath = output_path / ("frame%06d.png" % frame_index)
             if resume and frame_filepath.is_file():
                 frame_index += 1
                 continue
@@ -275,7 +274,7 @@ def walk(
                 else:
                     images = outputs
             for image in images:
-                frame_filepath = output_path / ("frame%06d.jpg" % frame_index)
+                frame_filepath = output_path / ("frame%06d.png" % frame_index)
                 image.save(frame_filepath)
                 frame_index += 1
 
