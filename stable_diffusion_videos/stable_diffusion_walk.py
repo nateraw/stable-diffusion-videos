@@ -261,7 +261,7 @@ def walk(
                     eta=eta,
                     num_inference_steps=num_inference_steps,
                     output_type='pil' if not upsample else 'numpy'
-                )["sample"]  #  [0]
+                )["sample"]
 
                 del embeds_batch
                 del latents_batch
