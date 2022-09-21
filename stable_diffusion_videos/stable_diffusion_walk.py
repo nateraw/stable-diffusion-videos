@@ -71,27 +71,27 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 
 
 def walk(
-    prompts=["blueberry spaghetti", "strawberry spaghetti"],
-    seeds=[42, 123],
-    num_steps=5,
-    output_dir="dreams",
-    name="berry_good_spaghetti",
-    height=512,
-    width=512,
-    guidance_scale=7.5,
-    eta=0.0,
-    num_inference_steps=50,
-    do_loop=False,
-    make_video=False,
-    use_lerp_for_text=False,
-    scheduler="klms",  # choices: default, ddim, klms
-    disable_tqdm=False,
-    upsample=False,
-    fps=30,
-    less_vram=False,
-    resume=False,
-    batch_size=1,
-    frame_filename_ext='.png',
+    prompts:list = ["blueberry spaghetti", "strawberry spaghetti"],
+    seeds:list = [42, 123],
+    num_steps:list=[5, 5],
+    output_dir:str="dreams",
+    name:str="berry_good_spaghetti",
+    height:int=512,
+    width:int=512,
+    guidance_scale:float=7.5,
+    eta:float=0.0,
+    num_inference_steps:int=50,
+    do_loop:bool=False,
+    make_video:bool=False,
+    use_lerp_for_text:bool=False,
+    scheduler:str="klms",  # choices: default, ddim, klms
+    disable_tqdm:bool=False,
+    upsample:bool=False,
+    fps:int=30,
+    less_vram:bool=False,
+    resume:bool=False,
+    batch_size:int=1,
+    frame_filename_ext:str='.png',
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -129,6 +129,12 @@ def walk(
         from .upsampling import PipelineRealESRGAN
 
         upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
+
+    if isinstance(num_steps, int):
+        if len(prompts) == 1:
+            num_steps = [num_steps]
+        else:
+            num_steps = [num_steps] * (len(prompts)-1)
 
     if less_vram:
         pipeline.enable_attention_slicing()
@@ -196,12 +202,13 @@ def walk(
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]
 
-    assert len(prompts) == len(seeds)
+    assert len(prompts) == len(seeds) == len(num_steps) +1
 
     first_prompt, *prompts = prompts
     embeds_a = pipeline.embed_text(first_prompt)
 
     first_seed, *seeds = seeds
+
     latents_a = torch.randn(
         (1, pipeline.unet.in_channels, height // 8, width // 8),
         device=pipeline.device,
@@ -211,9 +218,11 @@ def walk(
     if do_loop:
         prompts.append(first_prompt)
         seeds.append(first_seed)
+        num_steps.append(num_steps[0])
+
 
     frame_index = 0
-    for prompt, seed in zip(prompts, seeds):
+    for prompt, seed, num_step in zip(prompts, seeds, num_steps):
         # Text
         embeds_b = pipeline.embed_text(prompt)
 
@@ -225,7 +234,7 @@ def walk(
         )
 
         latents_batch, embeds_batch = None, None
-        for i, t in enumerate(np.linspace(0, 1, num_steps)):
+        for i, t in enumerate(np.linspace(0, 1, num_step)):
 
             frame_filepath = output_path / (f"frame%06d{frame_filename_ext}" % frame_index)
             if resume and frame_filepath.is_file():
@@ -251,7 +260,7 @@ def walk(
 
             do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
             if do_print_progress:
-                print(f"COUNT: {frame_index}/{len(seeds)*num_steps}")
+                print(f"COUNT: {frame_index}/{sum(num_steps)}")
 
             with torch.autocast("cuda"):
                 outputs = pipeline(
