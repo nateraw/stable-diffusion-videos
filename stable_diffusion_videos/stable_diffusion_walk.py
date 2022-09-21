@@ -1,7 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
-
+from typing import List, Union
 import numpy as np
 import torch
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
@@ -71,9 +71,9 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 
 
 def walk(
-    prompts:list = ["blueberry spaghetti", "strawberry spaghetti"],
-    seeds:list = [42, 123],
-    num_steps:list=[5],
+    prompts:List[str] = ["blueberry spaghetti", "strawberry spaghetti"],
+    seeds:List[int] = [42, 123],
+    num_steps:Union[int, List[int]]=5,
     output_dir:str="dreams",
     name:str="berry_good_spaghetti",
     height:int=512,
