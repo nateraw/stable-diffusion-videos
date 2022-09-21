@@ -131,10 +131,7 @@ def walk(
         upsampling_pipeline = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
 
     if isinstance(num_steps, int):
-        if len(prompts) == 1:
-            num_steps = [num_steps]
-        else:
-            num_steps = [num_steps] * (len(prompts)-1)
+        num_steps = [num_steps] * (len(prompts)-1)
 
     if less_vram:
         pipeline.enable_attention_slicing()
