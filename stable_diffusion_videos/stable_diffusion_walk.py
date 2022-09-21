@@ -73,7 +73,7 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 def walk(
     prompts:list = ["blueberry spaghetti", "strawberry spaghetti"],
     seeds:list = [42, 123],
-    num_steps:list=[5, 5],
+    num_steps:list=[5],
     output_dir:str="dreams",
     name:str="berry_good_spaghetti",
     height:int=512,
