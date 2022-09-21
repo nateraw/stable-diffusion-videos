@@ -90,7 +90,8 @@ def walk(
     fps=30,
     less_vram=False,
     resume=False,
-    batch_size=1
+    batch_size=1,
+    frame_filename_ext='.png',
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -118,6 +119,8 @@ def walk(
             part of the way through.
         batch_size (int, optional): Number of examples per batch fed to pipeline. Increase this until you
             run out of VRAM. Defaults to 1.
+        frame_filename_ext (str, optional): File extension to use when saving/resuming. Update this to
+            ".jpg" to save or resume generating jpg images instead. Defaults to ".png".
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
@@ -181,7 +184,7 @@ def walk(
         upsample = data['upsample'] if 'upsample' in data else upsample
         fps = data['fps'] if 'fps' in data else fps
 
-        resume_step = int(sorted(output_path.glob("frame*.png"))[-1].stem[5:])
+        resume_step = int(sorted(output_path.glob(f"frame*{frame_filename_ext}"))[-1].stem[5:])
         print(f"\nResuming {output_path} from step {resume_step}...")
 
 
@@ -224,7 +227,7 @@ def walk(
         latents_batch, embeds_batch = None, None
         for i, t in enumerate(np.linspace(0, 1, num_steps)):
 
-            frame_filepath = output_path / ("frame%06d.png" % frame_index)
+            frame_filepath = output_path / (f"frame%06d{frame_filename_ext}" % frame_index)
             if resume and frame_filepath.is_file():
                 frame_index += 1
                 continue
@@ -274,7 +277,7 @@ def walk(
                 else:
                     images = outputs
             for image in images:
-                frame_filepath = output_path / ("frame%06d.png" % frame_index)
+                frame_filepath = output_path / (f"frame%06d{frame_filename_ext}" % frame_index)
                 image.save(frame_filepath)
                 frame_index += 1
 
@@ -282,7 +285,7 @@ def walk(
         latents_a = latents_b
 
     if make_video:
-        return make_video_ffmpeg(output_path, f"{name}.mp4", fps=fps)
+        return make_video_ffmpeg(output_path, f"{name}.mp4", fps=fps, frame_filename=f"frame%06d{frame_filename_ext}")
 
 
 if __name__ == "__main__":
