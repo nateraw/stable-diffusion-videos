@@ -71,34 +71,34 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 
 
 def walk(
-    prompts:List[str] = ["blueberry spaghetti", "strawberry spaghetti"],
-    seeds:List[int] = [42, 123],
-    num_steps:Union[int, List[int]]=5,
-    output_dir:str="dreams",
-    name:str="berry_good_spaghetti",
-    height:int=512,
-    width:int=512,
-    guidance_scale:float=7.5,
-    eta:float=0.0,
-    num_inference_steps:int=50,
-    do_loop:bool=False,
-    make_video:bool=False,
-    use_lerp_for_text:bool=False,
-    scheduler:str="klms",  # choices: default, ddim, klms
-    disable_tqdm:bool=False,
-    upsample:bool=False,
-    fps:int=30,
-    less_vram:bool=False,
-    resume:bool=False,
-    batch_size:int=1,
-    frame_filename_ext:str='.png',
+    prompts: List[str] = ["blueberry spaghetti", "strawberry spaghetti"],
+    seeds: List[int] = [42, 123],
+    num_steps: Union[int, List[int]] = 5,
+    output_dir: str = "dreams",
+    name: str = "berry_good_spaghetti",
+    height: int = 512,
+    width: int = 512,
+    guidance_scale: float = 7.5,
+    eta: float = 0.0,
+    num_inference_steps: int = 50,
+    do_loop: bool = False,
+    make_video: bool = False,
+    use_lerp_for_text: bool = False,
+    scheduler: str = "klms",  # choices: default, ddim, klms
+    disable_tqdm: bool = False,
+    upsample: bool = False,
+    fps: int = 30,
+    less_vram: bool = False,
+    resume: bool = False,
+    batch_size: int = 1,
+    frame_filename_ext: str = '.png',
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
     Args:
         prompts (List[str], optional): List of . Defaults to ["blueberry spaghetti", "strawberry spaghetti"].
         seeds (List[int], optional): List of random seeds corresponding to given prompts.
-        num_steps (list, optional): list of number of steps to walk during each interpolation step. The size of num_steps should be len(prompts)-1. Increase this value to 60-200 for good results. Defaults to [5].
+        num_steps (Union[int, List[int]], optional): Number of steps to walk during each interpolation step. If int is provided, use same number of steps between each prompt. If a list is provided, the size of `num_steps` should be `len(prompts) - 1`. Increase values to 60-200 for good results. Defaults to 5.
         output_dir (str, optional): Root dir where images will be saved. Defaults to "dreams".
         name (str, optional): Sub directory of output_dir to save this run's files. Defaults to "berry_good_spaghetti".
         height (int, optional): Height of image to generate. Defaults to 512.
