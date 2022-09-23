@@ -85,7 +85,7 @@ interface_videos = gr.Interface(
         gr.Slider(3, 240, 10),
         gr.Checkbox(False),
         gr.Checkbox(False),
-        gr.Checkbox(False),
+        gr.Checkbox(True),
         gr.Textbox(
             "dreams",
             placeholder=(
