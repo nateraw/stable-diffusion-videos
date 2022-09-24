@@ -60,7 +60,7 @@ def fn_videos(
         guidance_scale=guidance_scale,
         prompts=prompts,
         seeds=seeds,
-        num_steps=num_walk_steps,
+        num_interpolation_steps=num_walk_steps,
         num_inference_steps=num_inference_steps,
         use_lerp_for_text=use_lerp_for_text,
         output_dir=output_dir,
