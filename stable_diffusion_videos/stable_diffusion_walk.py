@@ -73,7 +73,7 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 def walk(
     prompts=["blueberry spaghetti", "strawberry spaghetti"],
     seeds=[42, 123],
-    num_steps=5,
+    num_interpolation_steps=5,
     output_dir="dreams",
     name="berry_good_spaghetti",
     height=512,
@@ -144,7 +144,7 @@ def walk(
                 dict(
                     prompts=prompts,
                     seeds=seeds,
-                    num_steps=num_steps,
+                    num_interpolation_steps=num_interpolation_steps,
                     name=name,
                     guidance_scale=guidance_scale,
                     eta=eta,
@@ -170,7 +170,7 @@ def walk(
         data = json.load(open(prompt_config_path))
         prompts = data['prompts']
         seeds = data['seeds']
-        num_steps = data['num_steps']
+        num_interpolation_steps = data['num_interpolation_steps']
         height = data['height'] if 'height' in data else height
         width = data['width'] if 'width' in data else width
         guidance_scale = data['guidance_scale']
@@ -225,7 +225,7 @@ def walk(
         )
 
         latents_batch, embeds_batch = None, None
-        for i, t in enumerate(np.linspace(0, 1, num_steps)):
+        for i, t in enumerate(np.linspace(0, 1, num_interpolation_steps)):
 
             frame_filepath = output_path / (f"frame%06d{frame_filename_ext}" % frame_index)
             if resume and frame_filepath.is_file():
@@ -251,7 +251,7 @@ def walk(
 
             do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
             if do_print_progress:
-                print(f"COUNT: {frame_index}/{len(seeds)*num_steps}")
+                print(f"COUNT: {frame_index}/{len(seeds)*num_interpolation_steps}")
 
             with torch.autocast("cuda"):
                 outputs = pipeline(
