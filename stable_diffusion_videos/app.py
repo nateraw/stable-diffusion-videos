@@ -41,7 +41,7 @@ def fn_videos(
     scheduler,
     guidance_scale,
     num_inference_steps,
-    num_walk_steps,
+    num_interpolation_steps,
     do_loop,
     disable_tqdm,
     use_lerp_for_text,
