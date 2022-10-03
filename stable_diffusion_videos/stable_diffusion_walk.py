@@ -1,7 +1,8 @@
 import json
 import subprocess
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
+from warnings import warn
 import numpy as np
 import torch
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
@@ -92,6 +93,7 @@ def walk(
     resume: bool = False,
     batch_size: int = 1,
     frame_filename_ext: str = '.png',
+    num_steps: Optional[int] = None
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
@@ -121,10 +123,23 @@ def walk(
             run out of VRAM. Defaults to 1.
         frame_filename_ext (str, optional): File extension to use when saving/resuming. Update this to
             ".jpg" to save or resume generating jpg images instead. Defaults to ".png".
+        num_steps(int, optional): **Deprecated** Number of interpolation steps. Please use `num_interpolation_steps` instead.
 
     Returns:
         str: Path to video file saved if make_video=True, else None.
     """
+
+    if num_steps:
+        warn(
+            (
+                "The `num_steps` kwarg of the `stable_diffusion_videos.walk` fn is deprecated in 0.4.0 and will be removed in 0.5.0. "
+                "Please use `num_interpolation_steps` instead. Setting provided num_interpolation_steps to provided num_steps for now."
+            ),
+            DeprecationWarning,
+            stacklevel=2
+        )
+        num_interpolation_steps = num_steps
+
     if upsample:
         from .upsampling import PipelineRealESRGAN
 
