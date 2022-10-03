@@ -50,16 +50,16 @@ from stable_diffusion_videos import walk
 walk(
     prompts=['a cat', 'a dog'],
     seeds=[42, 1337],
-    output_dir='dreams',     # Where images/videos will be saved
-    name='animals_test',     # Subdirectory of output_dir where images/videos will be saved
-    guidance_scale=8.5,      # Higher adheres to prompt more, lower lets model take the wheel
-    num_steps=5,             # Change to 60-200 for better results...3-5 for testing
-    num_inference_steps=50, 
-    scheduler='klms',        # One of: "klms", "default", "ddim"
-    disable_tqdm=False,      # Set to True to disable tqdm progress bar
-    make_video=True,         # If false, just save images
-    use_lerp_for_text=True,  # Use lerp for text embeddings instead of slerp
-    do_loop=False,           # Change to True if you want last prompt to loop back to first prompt
+    output_dir='dreams',        # Where images/videos will be saved
+    name='animals_test',        # Subdirectory of output_dir where images/videos will be saved
+    guidance_scale=8.5,         # Higher adheres to prompt more, lower lets model take the wheel
+    num_interpolation_steps=5,  # Change to 60-200 for better results...3-5 for testing
+    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default.
+    scheduler='klms',           # One of: "klms", "default", "ddim"
+    disable_tqdm=False,         # Set to True to disable tqdm progress bar
+    make_video=True,            # If false, just save images
+    use_lerp_for_text=True,     # Use lerp for text embeddings instead of slerp
+    do_loop=False,              # Change to True if you want last prompt to loop back to first prompt
 )
 ```
 
