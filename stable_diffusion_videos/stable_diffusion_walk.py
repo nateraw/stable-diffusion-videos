@@ -108,7 +108,7 @@ def walk(
         num_inference_steps (int, optional): Number of diffusion steps. Defaults to 50.
         do_loop (bool, optional): Whether to loop from last prompt back to first. Defaults to False.
         make_video (bool, optional): Whether to make a video or just save the images. Defaults to False.
-        use_lerp_for_text (bool, optional): Use LERP instead of SLERP for text embeddings when walking. Defaults to False.
+        use_lerp_for_text (bool, optional): Use LERP instead of SLERP for text embeddings when walking. Defaults to True.
         scheduler (str, optional): Which scheduler to use. Defaults to "klms". Choices are "default", "ddim", "klms".
         disable_tqdm (bool, optional): Whether to turn off the tqdm progress bars. Defaults to False.
         upsample (bool, optional): If True, uses Real-ESRGAN to upsample images 4x. Requires it to be installed
