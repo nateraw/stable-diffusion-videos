@@ -1,7 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
-
+from typing import List, Union
 import numpy as np
 import torch
 from diffusers.schedulers import (DDIMScheduler, LMSDiscreteScheduler,
@@ -71,34 +71,34 @@ def make_video_ffmpeg(frame_dir, output_file_name='output.mp4', frame_filename="
 
 
 def walk(
-    prompts=["blueberry spaghetti", "strawberry spaghetti"],
-    seeds=[42, 123],
-    num_interpolation_steps=5,
-    output_dir="dreams",
-    name="berry_good_spaghetti",
-    height=512,
-    width=512,
-    guidance_scale=7.5,
-    eta=0.0,
-    num_inference_steps=50,
-    do_loop=False,
-    make_video=False,
-    use_lerp_for_text=True,
-    scheduler="klms",  # choices: default, ddim, klms
-    disable_tqdm=False,
-    upsample=False,
-    fps=30,
-    less_vram=False,
-    resume=False,
-    batch_size=1,
-    frame_filename_ext='.png',
+    prompts: List[str] = ["blueberry spaghetti", "strawberry spaghetti"],
+    seeds: List[int] = [42, 123],
+    num_interpolation_steps: Union[int, List[int]] = 5,
+    output_dir: str = "dreams",
+    name: str = "berry_good_spaghetti",
+    height: int = 512,
+    width: int = 512,
+    guidance_scale: float = 7.5,
+    eta: float = 0.0,
+    num_inference_steps: int = 50,
+    do_loop: bool = False,
+    make_video: bool = False,
+    use_lerp_for_text: bool = False,
+    scheduler: str = "klms",  # choices: default, ddim, klms
+    disable_tqdm: bool = False,
+    upsample: bool = False,
+    fps: int = 30,
+    less_vram: bool = False,
+    resume: bool = False,
+    batch_size: int = 1,
+    frame_filename_ext: str = '.png',
 ):
     """Generate video frames/a video given a list of prompts and seeds.
 
     Args:
         prompts (List[str], optional): List of . Defaults to ["blueberry spaghetti", "strawberry spaghetti"].
         seeds (List[int], optional): List of random seeds corresponding to given prompts.
-        num_steps (int, optional): Number of steps to walk. Increase this value to 60-200 for good results. Defaults to 5.
+        num_interpolation_steps (Union[int, List[int]], optional): Number of steps to walk during each interpolation step. If int is provided, use same number of steps between each prompt. If a list is provided, the size of `num_interpolation_steps` should be `len(prompts) - 1`. Increase values to 60-200 for good results. Defaults to 5.
         output_dir (str, optional): Root dir where images will be saved. Defaults to "dreams".
         name (str, optional): Sub directory of output_dir to save this run's files. Defaults to "berry_good_spaghetti".
         height (int, optional): Height of image to generate. Defaults to 512.
@@ -170,7 +170,8 @@ def walk(
         data = json.load(open(prompt_config_path))
         prompts = data['prompts']
         seeds = data['seeds']
-        num_interpolation_steps = data['num_interpolation_steps']
+        # NOTE - num_steps was renamed to num_interpolation_steps. Including it here for backwards compatibility.
+        num_interpolation_steps = data.get('num_interpolation_steps') or data.get('num_steps')
         height = data['height'] if 'height' in data else height
         width = data['width'] if 'width' in data else width
         guidance_scale = data['guidance_scale']
@@ -196,12 +197,16 @@ def walk(
     pipeline.set_progress_bar_config(disable=disable_tqdm)
     pipeline.scheduler = SCHEDULERS[scheduler]
 
-    assert len(prompts) == len(seeds)
+    if isinstance(num_interpolation_steps, int):
+        num_interpolation_steps = [num_interpolation_steps] * (len(prompts)-1)
+
+    assert len(prompts) == len(seeds) == len(num_interpolation_steps) +1
 
     first_prompt, *prompts = prompts
     embeds_a = pipeline.embed_text(first_prompt)
 
     first_seed, *seeds = seeds
+
     latents_a = torch.randn(
         (1, pipeline.unet.in_channels, height // 8, width // 8),
         device=pipeline.device,
@@ -211,9 +216,12 @@ def walk(
     if do_loop:
         prompts.append(first_prompt)
         seeds.append(first_seed)
+        num_interpolation_steps.append(num_interpolation_steps[0])
+
 
     frame_index = 0
-    for prompt, seed in zip(prompts, seeds):
+    total_frame_count = sum(num_interpolation_steps)
+    for prompt, seed, num_step in zip(prompts, seeds, num_interpolation_steps):
         # Text
         embeds_b = pipeline.embed_text(prompt)
 
@@ -225,7 +233,7 @@ def walk(
         )
 
         latents_batch, embeds_batch = None, None
-        for i, t in enumerate(np.linspace(0, 1, num_interpolation_steps)):
+        for i, t in enumerate(np.linspace(0, 1, num_step)):
 
             frame_filepath = output_path / (f"frame%06d{frame_filename_ext}" % frame_index)
             if resume and frame_filepath.is_file():
@@ -251,7 +259,7 @@ def walk(
 
             do_print_progress = (i == 0) or ((frame_index) % 20 == 0)
             if do_print_progress:
-                print(f"COUNT: {frame_index}/{len(seeds)*num_interpolation_steps}")
+                print(f"COUNT: {frame_index}/{total_frame_count}")
 
             with torch.autocast("cuda"):
                 outputs = pipeline(
