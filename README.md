@@ -6,9 +6,9 @@ Try it yourself in Colab: [![Open In Colab](https://colab.research.google.com/as
 
 https://user-images.githubusercontent.com/32437151/188721341-6f28abf9-699b-46b0-a72e-fa2a624ba0bb.mp4
 
-## How it Works
+# How it Works
 
-### The Notebook/App
+## The Notebook/App
 
 The [in-browser Colab demo](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb) allows you to generate videos by interpolating the latent space of [Stable Diffusion](https://github.com/CompVis/stable-diffusion).
 
@@ -26,9 +26,9 @@ The app is built with [Gradio](https://gradio.app/), which allows you to interac
     - Set the `num_walk_steps` - for testing you can use a small number like 3 or 5, but to get great results you'll want to use something larger (60-200 steps). 
     - You can set the `output_dir` to the directory you wish to save to
 
-### Python Package
+## Python Package
 
-#### Setup
+### Setup
 
 Install the package
 
@@ -42,7 +42,7 @@ Authenticate with Hugging Face
 huggingface-cli login
 ```
 
-#### Programatic Usage
+### Making Videos
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline
@@ -71,6 +71,8 @@ video_path = pipeline.walk(
     num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default
 )
 ```
+
+### Making Music Videos
 
 *New!* Music can be added to the video by providing a path to an audio file. The audio will inform the rate of interpolation so the videos move to the beat 🎶
 
