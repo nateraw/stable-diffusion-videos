@@ -45,21 +45,25 @@ huggingface-cli login
 #### Programatic Usage
 
 ```python
-from stable_diffusion_videos import walk
+import torch
 
-walk(
+from stable_diffusion_videos import StableDiffusionWalkPipeline
+
+pipeline = StableDiffusionWalkPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    use_auth_token=True,
+    torch_dtype=torch.float16,
+    revision="fp16",
+).to('cuda')
+
+pipeline.walk(
     prompts=['a cat', 'a dog'],
     seeds=[42, 1337],
+    num_interpolation_steps=5,  # Change to 60-200 for better results...3-5 for testing
     output_dir='dreams',        # Where images/videos will be saved
     name='animals_test',        # Subdirectory of output_dir where images/videos will be saved
     guidance_scale=8.5,         # Higher adheres to prompt more, lower lets model take the wheel
-    num_interpolation_steps=5,  # Change to 60-200 for better results...3-5 for testing
-    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default.
-    scheduler='klms',           # One of: "klms", "default", "ddim"
-    disable_tqdm=False,         # Set to True to disable tqdm progress bar
-    make_video=True,            # If false, just save images
-    use_lerp_for_text=True,     # Use lerp for text embeddings instead of slerp
-    do_loop=False,              # Change to True if you want last prompt to loop back to first prompt
+    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default
 )
 ```
 
@@ -97,9 +101,7 @@ pip install realesrgan
 Then, you'll be able to use `upsample=True` in the `walk` function, like this:
 
 ```python
-from stable_diffusion_videos import walk
-
-walk(['a cat', 'a dog'], [234, 345], upsample=True)
+pipeline.walk(['a cat', 'a dog'], [234, 345], upsample=True)
 ```
 
 The above may cause you to run out of VRAM. No problem, you can do upsampling separately.
