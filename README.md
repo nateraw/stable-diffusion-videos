@@ -45,21 +45,69 @@ huggingface-cli login
 #### Programatic Usage
 
 ```python
-from stable_diffusion_videos import walk
+from stable_diffusion_videos import StableDiffusionWalkPipeline
+from diffusers.schedulers import LMSDiscreteScheduler
+import torch
 
-walk(
+pipeline = StableDiffusionWalkPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    use_auth_token=True,
+    torch_dtype=torch.float16,
+    revision="fp16",
+    scheduler=LMSDiscreteScheduler(
+        beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
+    )
+).to("cuda")
+
+video_path = pipeline.walk(
     prompts=['a cat', 'a dog'],
     seeds=[42, 1337],
+    num_interpolation_steps=3,
+    height=512,  # use multiples of 64 if > 512. Multiples of 8 if < 512.
+    width=512,   # use multiples of 64 if > 512. Multiples of 8 if < 512.
     output_dir='dreams',        # Where images/videos will be saved
     name='animals_test',        # Subdirectory of output_dir where images/videos will be saved
     guidance_scale=8.5,         # Higher adheres to prompt more, lower lets model take the wheel
-    num_interpolation_steps=5,  # Change to 60-200 for better results...3-5 for testing
-    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default.
-    scheduler='klms',           # One of: "klms", "default", "ddim"
-    disable_tqdm=False,         # Set to True to disable tqdm progress bar
-    make_video=True,            # If false, just save images
-    use_lerp_for_text=True,     # Use lerp for text embeddings instead of slerp
-    do_loop=False,              # Change to True if you want last prompt to loop back to first prompt
+    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default
+)
+```
+
+*New!* Music can be added to the video by providing a path to an audio file. The audio will inform the rate of interpolation so the videos move to the beat 🎶
+
+```python
+from stable_diffusion_videos import StableDiffusionWalkPipeline
+from diffusers.schedulers import LMSDiscreteScheduler
+import torch
+
+pipeline = StableDiffusionWalkPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    use_auth_token=True,
+    torch_dtype=torch.float16,
+    revision="fp16",
+    scheduler=LMSDiscreteScheduler(
+        beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
+    )
+).to("cuda")
+
+
+# Seconds in the song.
+audio_offsets = [146, 148]
+fps = 30  # Use lower values for testing (5 or 10), higher values for better quality (30 or 60)
+
+# Convert seconds to frames
+num_interpolation_steps = [(b-a) * fps for a, b in zip(audio_offsets, audio_offsets[1:])]
+
+video_path = pipeline.walk(
+    prompts=['a cat', 'a dog'],
+    seeds=[42, 1337],
+    num_interpolation_steps=num_interpolation_steps,
+    audio_filepath='audio.mp3',
+    audio_start_sec=audio_offsets[0],
+    height=512,  # use multiples of 64 if > 512. Multiples of 8 if < 512.
+    width=512,   # use multiples of 64 if > 512. Multiples of 8 if < 512.
+    output_dir='dreams',        # Where images/videos will be saved
+    guidance_scale=7.5,         # Higher adheres to prompt more, lower lets model take the wheel
+    num_inference_steps=50,     # Number of diffusion steps per image generated. 50 is good default
 )
 ```
 
@@ -97,9 +145,7 @@ pip install realesrgan
 Then, you'll be able to use `upsample=True` in the `walk` function, like this:
 
 ```python
-from stable_diffusion_videos import walk
-
-walk(['a cat', 'a dog'], [234, 345], upsample=True)
+pipeline.walk(['a cat', 'a dog'], [234, 345], upsample=True)
 ```
 
 The above may cause you to run out of VRAM. No problem, you can do upsampling separately.
