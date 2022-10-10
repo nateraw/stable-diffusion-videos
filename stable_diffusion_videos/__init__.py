@@ -102,6 +102,10 @@ __getattr__, __dir__, __all__ = _attach(
             "interface",
             "pipeline",
         ],
+        "image_generation": [
+            "generate_images",
+            "upload_folder_chunked",
+        ],
         "stable_diffusion_pipeline": [
             "StableDiffusionWalkPipeline",
             "NoCheck",
@@ -112,4 +116,4 @@ __getattr__, __dir__, __all__ = _attach(
     },
 )
 
-__version__ = "0.5.0"
+__version__ = "0.5.1dev"
