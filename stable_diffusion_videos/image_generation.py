@@ -168,7 +168,7 @@ def generate_images(
         print(f"Generating batch {batch_idx}")
 
         with torch.autocast('cuda'):
-            outputs = pipeline.step(
+            outputs = pipeline(
                 text_embeddings=embeds,
                 latents=noise,
                 num_inference_steps=num_inference_steps,

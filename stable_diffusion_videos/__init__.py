@@ -105,7 +105,7 @@ __getattr__, __dir__, __all__ = _attach(
         "image_generation": [
             "generate_images",
             "upload_folder_chunked",
-        ]
+        ],
         "stable_diffusion_pipeline": [
             "StableDiffusionWalkPipeline",
             "NoCheck",
