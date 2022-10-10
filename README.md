@@ -105,6 +105,7 @@ video_path = pipeline.walk(
     num_interpolation_steps=num_interpolation_steps,
     audio_filepath='audio.mp3',
     audio_start_sec=audio_offsets[0],
+    fps=fps,
     height=512,  # use multiples of 64 if > 512. Multiples of 8 if < 512.
     width=512,   # use multiples of 64 if > 512. Multiples of 8 if < 512.
     output_dir='dreams',        # Where images/videos will be saved

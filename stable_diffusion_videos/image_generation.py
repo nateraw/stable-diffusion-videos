@@ -176,6 +176,7 @@ def generate_images(
                 eta=eta,
                 height=height,
                 width=width,
+                output_type="pil" if not upsample else "numpy",
             )['sample']
             if upsample:
                 images = []
