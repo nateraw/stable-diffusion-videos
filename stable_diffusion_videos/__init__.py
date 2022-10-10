@@ -108,7 +108,7 @@ __getattr__, __dir__, __all__ = _attach(
             "make_video_pyav",
             "get_timesteps_arr",
         ],
-        "upsampling": ["PipelineRealESRGAN"],
+        "upsampling": ["RealESRGANModel"],
     },
 )
 
