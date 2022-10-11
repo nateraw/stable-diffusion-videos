@@ -25,6 +25,8 @@ setup(
     description=(
         "Create 🔥 videos with Stable Diffusion by exploring the latent space and morphing between text prompts."
     ),
+    long_description=open("README.md", "r", encoding="utf-8").read(),
+    long_description_content_type="text/markdown",
     license="Apache",
     install_requires=requirements,
     extras_require=extras,
