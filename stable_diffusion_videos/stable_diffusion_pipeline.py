@@ -654,7 +654,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         if not resume and isinstance(num_interpolation_steps, int):
             num_interpolation_steps = [num_interpolation_steps] * (len(prompts) - 1)
 
-        if not resume and audio_filepath:
+        if not resume:
             audio_start_sec = audio_start_sec or 0
 
         # Save/reload prompt config
@@ -719,6 +719,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                         continue
                     print(f"Resuming {save_path.name} from frame {skip}")
 
+            audio_offset = audio_start_sec + sum(num_interpolation_steps[:i]) / fps
+            audio_duration = num_step / fps
+
             self.generate_interpolation_clip(
                 prompt_a,
                 prompt_b,
@@ -736,8 +739,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 skip=skip,
                 T=get_timesteps_arr(
                     audio_filepath,
-                    offset=audio_start_sec + (i * num_step / fps),
-                    duration=num_step / fps,
+                    offset=audio_offset,
+                    duration=audio_duration,
                     fps=fps,
                     margin=(1.0, 5.0),
                 )
@@ -750,8 +753,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 fps=fps,
                 output_filepath=step_output_filepath,
                 glob_pattern=f"*{image_file_ext}",
-                audio_offset=audio_start_sec + (i * num_step / fps) if audio_start_sec else 0,
-                audio_duration=num_step / fps,
+                audio_offset=audio_offset,
+                audio_duration=audio_duration,
                 sr=44100,
             )
 
