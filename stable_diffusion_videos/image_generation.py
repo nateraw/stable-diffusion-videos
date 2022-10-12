@@ -111,6 +111,7 @@ def generate_images(
     repo_id=None,
     private=False,
     create_pr=False,
+    name=None,
 ):
     """Generate images using the StableDiffusion pipeline.
 
@@ -131,12 +132,14 @@ def generate_images(
         repo_id (str, *optional*): The repo id to push the images to.
         private (bool, *optional*): Whether to push the repo as private.
         create_pr (bool, *optional*): Whether to create a PR after pushing instead of commiting directly.
+        name (str, *optional*, defaults to current timestamp str): The name of the sub-directory of
+            output_dir to save the images to.
     """
     if push_to_hub:
         if repo_id is None:
             raise ValueError("Must provide repo_id if push_to_hub is True.")
 
-    name = time.strftime("%Y%m%d-%H%M%S")
+    name = name or time.strftime("%Y%m%d-%H%M%S")
     save_path = Path(output_dir) / name
     save_path.mkdir(exist_ok=False, parents=True)
     prompt_config_path = save_path / "prompt_config.json"
@@ -158,12 +161,14 @@ def generate_images(
         height=height,
         width=width,
         scheduler=dict(pipeline.scheduler.config),
+        tiled=pipeline.tiled,
         diffusers_version=pipeline.config._diffusers_version,
         device_name=torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'unknown',
     )
     prompt_config_path.write_text(json.dumps(cfg, indent=2, sort_keys=False))
 
     frame_index = 0
+    frame_filepaths = []
     for batch_idx, embeds, noise in generate_input_batches(pipeline, [prompt] * num_images, seeds, batch_size, height, width):
         print(f"Generating batch {batch_idx}")
 
@@ -188,7 +193,10 @@ def generate_images(
         for image in images:
             frame_filepath = save_path / f"{seeds[frame_index]}{image_file_ext}"
             image.save(frame_filepath)
+            frame_filepaths.append(str(frame_filepath))
             frame_index += 1
+
+    return frame_filepaths
 
     if push_to_hub:
         upload_folder_chunked(repo_id, save_path, private=private, create_pr=create_pr)
