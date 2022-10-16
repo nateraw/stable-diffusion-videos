@@ -156,19 +156,19 @@ The above may cause you to run out of VRAM. No problem, you can do upsampling se
 To upsample an individual image:
 
 ```python
-from stable_diffusion_videos import PipelineRealESRGAN
+from stable_diffusion_videos import RealESRGANModel
 
-pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
-enhanced_image = pipe('your_file.jpg')
+model = RealESRGANModel.from_pretrained('nateraw/real-esrgan')
+enhanced_image = model('your_file.jpg')
 ```
 
 Or, to do a whole folder:
 
 ```python
-from stable_diffusion_videos import PipelineRealESRGAN
+from stable_diffusion_videos import RealESRGANModel
 
-pipe = PipelineRealESRGAN.from_pretrained('nateraw/real-esrgan')
-pipe.upsample_imagefolder('path/to/images/', 'path/to/output_dir')
+model = RealESRGANModel.from_pretrained('nateraw/real-esrgan')
+model.upsample_imagefolder('path/to/images/', 'path/to/output_dir')
 ```
 
 
