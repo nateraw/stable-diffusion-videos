@@ -799,7 +799,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
 
             patch_conv(padding_mode="circular")
 
-        return super().from_pretrained(*args, **kwargs)
+        pipeline = super().from_pretrained(*args, **kwargs)
+        pipeline.tiled = tiled
+        return pipeline
 
 
 class NoCheck(ModelMixin):
