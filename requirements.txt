@@ -1,5 +1,5 @@
 transformers
-diffusers==0.4.0
+diffusers==0.5.1
 scipy
 fire
 gradio
