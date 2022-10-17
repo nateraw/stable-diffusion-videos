@@ -108,7 +108,6 @@ __getattr__, __dir__, __all__ = _attach(
         ],
         "stable_diffusion_pipeline": [
             "StableDiffusionWalkPipeline",
-            "NoCheck",
             "make_video_pyav",
             "get_timesteps_arr",
         ],

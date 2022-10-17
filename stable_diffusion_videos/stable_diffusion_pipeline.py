@@ -15,7 +15,7 @@ from diffusers.configuration_utils import FrozenDict
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
-from diffusers.utils import deprecate, logging
+from diffusers.utils import deprecate
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
 from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
 
@@ -23,9 +23,6 @@ from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 from torch import nn
 
 from .upsampling import RealESRGANModel
-
-
-logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
 def get_spec_norm(wav, sr, n_mels=512, hop_length=704):
@@ -850,14 +847,3 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         pipeline = super().from_pretrained(*args, **kwargs)
         pipeline.tiled = tiled
         return pipeline
-
-
-class NoCheck(ModelMixin):
-    """Can be used in place of safety checker. Use responsibly and at your own risk."""
-
-    def __init__(self):
-        super().__init__()
-        self.register_parameter(name="asdf", param=torch.nn.Parameter(torch.randn(3)))
-
-    def forward(self, images=None, **kwargs):
-        return images, [False]
