@@ -15,7 +15,7 @@ from diffusers.configuration_utils import FrozenDict
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
-from diffusers.utils import deprecate
+from diffusers.utils import deprecate, logging
 from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
 from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
 
@@ -24,6 +24,7 @@ from torch import nn
 
 from .upsampling import RealESRGANModel
 
+logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 def get_spec_norm(wav, sr, n_mels=512, hop_length=704):
     """Obtain maximum value for each time-frame in Mel Spectrogram,
@@ -204,6 +205,16 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             new_config = dict(scheduler.config)
             new_config["steps_offset"] = 1
             scheduler._internal_dict = FrozenDict(new_config)
+
+        if safety_checker is None:
+            logger.warn(
+                f"You have disabled the safety checker for {self.__class__} by passing `safety_checker=None`. Ensure"
+                " that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered"
+                " results in services or applications open to the public. Both the diffusers team and Hugging Face"
+                " strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling"
+                " it only for use-cases that involve analyzing network behavior or auditing its results. For more"
+                " information, please have a look at https://github.com/huggingface/diffusers/pull/254 ."
+            )
 
         self.register_modules(
             vae=vae,
