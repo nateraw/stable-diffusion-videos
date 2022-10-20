@@ -23,7 +23,7 @@ The app is built with [Gradio](https://gradio.app/), which allows you to interac
 
 2. Generate videos using the "Videos" tab
     - Using the images you found from the step above, provide the prompts/seeds you recorded
-    - Set the `num_walk_steps` - for testing you can use a small number like 3 or 5, but to get great results you'll want to use something larger (60-200 steps). 
+    - Set the `num_interpolation_steps` - for testing you can use a small number like 3 or 5, but to get great results you'll want to use something larger (60-200 steps). 
     - You can set the `output_dir` to the directory you wish to save to
 
 ## Python Package
@@ -51,7 +51,6 @@ import torch
 
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    use_auth_token=True,
     torch_dtype=torch.float16,
     revision="fp16",
     scheduler=LMSDiscreteScheduler(
@@ -83,7 +82,6 @@ import torch
 
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    use_auth_token=True,
     torch_dtype=torch.float16,
     revision="fp16",
     scheduler=LMSDiscreteScheduler(
