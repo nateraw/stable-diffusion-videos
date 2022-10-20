@@ -99,8 +99,7 @@ __getattr__, __dir__, __all__ = _attach(
     submodules=[],
     submod_attrs={
         "app": [
-            "interface",
-            "pipeline",
+            "Interface",
         ],
         "image_generation": [
             "generate_images",
