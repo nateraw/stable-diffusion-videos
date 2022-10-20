@@ -46,16 +46,12 @@ huggingface-cli login
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline
-from diffusers.schedulers import LMSDiscreteScheduler
 import torch
 
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch.float16,
     revision="fp16",
-    scheduler=LMSDiscreteScheduler(
-        beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
-    )
 ).to("cuda")
 
 video_path = pipeline.walk(
