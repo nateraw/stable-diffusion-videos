@@ -10,7 +10,6 @@ import time
 import json
 
 import torch
-from diffusers import ModelMixin
 from diffusers.configuration_utils import FrozenDict
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
@@ -128,7 +127,6 @@ def make_video_pyav(
             frame = pil_to_tensor(Image.open(img)).unsqueeze(0)
             frames = frame if frames is None else torch.cat([frames, frame])
     else:
-
         frames = frames_or_frame_dir
 
     # TCHW -> THWC
@@ -505,16 +503,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
     def generate_inputs(self, prompt_a, prompt_b, seed_a, seed_b, noise_shape, T, batch_size):
         embeds_a = self.embed_text(prompt_a)
         embeds_b = self.embed_text(prompt_b)
-        latents_a = torch.randn(
-            noise_shape,
-            device=self.device,
-            generator=torch.Generator(device=self.device).manual_seed(seed_a),
-        )
-        latents_b = torch.randn(
-            noise_shape,
-            device=self.device,
-            generator=torch.Generator(device=self.device).manual_seed(seed_b),
-        )
+
+        latents_a = self.init_noise(seed_a, noise_shape)
+        latents_b = self.init_noise(seed_b, noise_shape)
 
         batch_idx = 0
         embeds_batch, noise_batch = None, None
@@ -665,7 +656,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         For example, if you provide the following prompts and seeds:
 
         ```
-        prompts = ['a', 'b', 'c']
+        prompts = ['a dog', 'a cat', 'a bird']
         seeds = [1, 2, 3]
         num_interpolation_steps = 5
         output_dir = 'output_dir'
@@ -838,6 +829,23 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             with torch.no_grad():
                 embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return embed
+
+    def init_noise(self, seed, noise_shape):
+        """Helper to initialize noise"""
+        # randn does not exist on mps, so we create noise on CPU here and move it to the device after initialization
+        if self.device.type == "mps":
+            noise = torch.randn(
+                noise_shape,
+                device='cpu',
+                generator=torch.Generator(device='cpu').manual_seed(seed),
+            ).to(self.device)
+        else:
+            noise = torch.randn(
+                noise_shape,
+                device=self.device,
+                generator=torch.Generator(device=self.device).manual_seed(seed),
+            )
+        return noise
 
     @classmethod
     def from_pretrained(cls, *args, tiled=False, **kwargs):
