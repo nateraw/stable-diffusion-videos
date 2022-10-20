@@ -524,7 +524,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             torch.cuda.empty_cache()
             embeds_batch, noise_batch = None, None
 
-    def generate_interpolation_clip(
+    def make_clip_frames(
         self,
         prompt_a: str,
         prompt_b: str,
@@ -769,7 +769,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             audio_offset = audio_start_sec + sum(num_interpolation_steps[:i]) / fps
             audio_duration = num_step / fps
 
-            self.generate_interpolation_clip(
+            self.make_clip_frames(
                 prompt_a,
                 prompt_b,
                 seed_a,
