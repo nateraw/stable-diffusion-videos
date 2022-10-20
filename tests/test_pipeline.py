@@ -5,7 +5,7 @@ We'll run these locally before pushing to the repo, or at the very least
 before making a release.
 """
 
-from stable_diffusion_videos import NoCheck, StableDiffusionWalkPipeline
+from stable_diffusion_videos import StableDiffusionWalkPipeline
 import torch
 from pathlib import Path
 from shutil import rmtree
@@ -20,11 +20,10 @@ SAMPLES_DIR = Path(__file__).parent / "samples"
 def pipeline(scope="session"):
     pipe = StableDiffusionWalkPipeline.from_pretrained(
         "CompVis/stable-diffusion-v1-4",
-        use_auth_token=True,
         torch_dtype=torch.float16,
         revision="fp16",
+        safety_checker=None,
     ).to('cuda')
-    pipe.safety_checker = NoCheck().cuda()
     return pipe
 
 
