@@ -4,4 +4,4 @@ scipy
 fire
 gradio
 librosa
-av
+av<10.0.0
