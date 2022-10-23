@@ -25,53 +25,35 @@ from .upsampling import RealESRGANModel
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
-def get_spec_norm(wav, sr, n_mels=512, hop_length=704):
-    """Obtain maximum value for each time-frame in Mel Spectrogram,
-    and normalize between 0 and 1
 
-    Borrowed from lucid sonic dreams repo. In there, they programatically determine hop length
-    but I really didn't understand what was going on so I removed it and hard coded the output.
-    """
+def get_timesteps_arr(audio_filepath, offset, duration, fps=30, margin=1.0, smooth=0.0):
+    y, sr = librosa.load(audio_filepath, offset=offset, duration=duration)
 
-    # Generate Mel Spectrogram
-    spec_raw = librosa.feature.melspectrogram(y=wav, sr=sr, n_mels=n_mels, hop_length=hop_length)
+    # librosa.stft hardcoded defaults...
+    # n_fft defaults to 2048
+    # hop length is win_length // 4
+    # win_length defaults to n_fft
+    D = librosa.stft(y, n_fft=2048, hop_length=2048 // 4, win_length=2048)
 
-    # Obtain maximum value per time-frame
+    # Extract percussive elements
+    D_harmonic, D_percussive = librosa.decompose.hpss(D, margin=margin)
+    y_percussive = librosa.istft(D_percussive, length=len(y))
+
+    # Get normalized melspectrogram
+    spec_raw = librosa.feature.melspectrogram(y=y_percussive, sr=sr)
     spec_max = np.amax(spec_raw, axis=0)
-
-    # Normalize all values between 0 and 1
     spec_norm = (spec_max - np.min(spec_max)) / np.ptp(spec_max)
 
-    return spec_norm
+    # Resize cumsum of spec norm to our desired number of interpolation frames
+    x_norm = np.linspace(0, spec_norm.shape[-1], spec_norm.shape[-1])
+    y_norm = np.cumsum(spec_norm)
+    y_norm /= y_norm[-1]
+    x_resize = np.linspace(0, y_norm.shape[-1], int(duration*fps))
 
+    T = np.interp(x_resize, x_norm, y_norm)
 
-def get_timesteps_arr(audio_filepath, offset, duration, fps=30, margin=(1.0, 5.0)):
-    """Get the array that will be used to determine how much to interpolate between images.
-
-    Normally, this is just a linspace between 0 and 1 for the number of frames to generate. In this case,
-    we want to use the amplitude of the audio to determine how much to interpolate between images.
-
-    So, here we:
-        1. Load the audio file
-        2. Split the audio into harmonic and percussive components
-        3. Get the normalized amplitude of the percussive component, resized to the number of frames
-        4. Get the cumulative sum of the amplitude array
-        5. Normalize the cumulative sum between 0 and 1
-        6. Return the array
-
-    I honestly have no clue what I'm doing here. Suggestions welcome.
-    """
-    y, sr = librosa.load(audio_filepath, offset=offset, duration=duration)
-    wav_harmonic, wav_percussive = librosa.effects.hpss(y, margin=margin)
-
-    # Apparently n_mels is supposed to be input shape but I don't think it matters here?
-    frame_duration = int(sr / fps)
-    wav_norm = get_spec_norm(wav_percussive, sr, n_mels=512, hop_length=frame_duration)
-    amplitude_arr = np.resize(wav_norm, int(duration * fps))
-    T = np.cumsum(amplitude_arr)
-    T /= T[-1]
-    T[0] = 0.0
-    return T
+    # Apply smoothing
+    return T * (1 - smooth) + np.linspace(0.0, 1.0, T.shape[0]) * smooth
 
 
 def slerp(t, v0, v1, DOT_THRESHOLD=0.9995):
@@ -604,6 +586,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         resume: Optional[bool] = False,
         audio_filepath: str = None,
         audio_start_sec: Optional[Union[int, float]] = None,
+        margin: Optional[float] = 1.0,
+        smooth: Optional[float] = 0.0,
     ):
         """Generate a video from a sequence of prompts and seeds. Optionally, add audio to the
         video to interpolate to the intensity of the audio.
@@ -650,6 +634,10 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 Optional path to an audio file to influence the interpolation rate.
             audio_start_sec (Optional[Union[int, float]], *optional*, defaults to 0):
                 Global start time of the provided audio_filepath.
+            margin (Optional[float], *optional*, defaults to 1.0):
+                Margin from librosa hpss to use for audio interpolation.
+            smooth (Optional[float], *optional*, defaults to 0.0):
+                Smoothness of the audio interpolation. 1.0 means linear interpolation.
 
         This function will create sub directories for each prompt and seed pair.
 
@@ -789,7 +777,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                     offset=audio_offset,
                     duration=audio_duration,
                     fps=fps,
-                    margin=(1.0, 5.0),
+                    margin=margin,
+                    smooth=smooth,
                 )
                 if audio_filepath
                 else None,
