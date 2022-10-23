@@ -99,6 +99,7 @@ def generate_images(
     prompt,
     batch_size=1,
     num_batches=1,
+    seeds=None,
     num_inference_steps=50,
     guidance_scale=7.5,
     output_dir="./images",
@@ -120,6 +121,7 @@ def generate_images(
         prompt (str): The prompt to use for the image generation.
         batch_size (int, *optional*, defaults to 1): The batch size to use for image generation.
         num_batches (int, *optional*, defaults to 1): The number of batches to generate.
+        seeds (list[int], *optional*): The seeds to use for the image generation.
         num_inference_steps (int, *optional*, defaults to 50): The number of inference steps to take.
         guidance_scale (float, *optional*, defaults to 7.5): The guidance scale to use for image generation.
         output_dir (str, *optional*, defaults to "./images"): The output directory to save the images to.
@@ -145,7 +147,9 @@ def generate_images(
     prompt_config_path = save_path / "prompt_config.json"
 
     num_images = batch_size * num_batches
-    seeds = [random.choice(list(range(0, 9999999))) for _ in range(num_images)]
+    seeds = seeds or [random.choice(list(range(0, 9999999))) for _ in range(num_images)]
+    if len(seeds) != num_images:
+        raise ValueError("Number of seeds must be equal to batch_size * num_batches.")
 
     if upsample:
         if getattr(pipeline, 'upsampler', None) is None:
