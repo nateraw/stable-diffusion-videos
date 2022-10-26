@@ -21,7 +21,7 @@ pipe = StableDiffusionWalkPipeline.from_pretrained(
 # youtube-dl -f bestaudio --extract-audio --audio-format mp3 --audio-quality 0 -o "music/thoughts.%(ext)s" https://soundcloud.com/nateraw/thoughts
 audio_filepath = 'music/thoughts.mp3'
 
-# Seconds in the song. Here we slice the audio from 0:11-0:14
+# Seconds in the song. Here we slice the audio from 0:07-0:16
 # Should be same length as prompts/seeds.
 audio_offsets = [7, 10, 13, 16]
 
