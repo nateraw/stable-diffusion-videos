@@ -32,13 +32,13 @@ The app is built with [Gradio](https://gradio.app/), which allows you to interac
 
 Install the package
 
-```
-pip install stable_diffusion_videos
+```bash
+pip install -U stable_diffusion_videos
 ```
 
 Authenticate with Hugging Face
 
-```
+```bash
 huggingface-cli login
 ```
 
@@ -83,7 +83,7 @@ pipeline = StableDiffusionWalkPipeline.from_pretrained(
 
 
 # Seconds in the song.
-audio_offsets = [146, 148]
+audio_offsets = [146, 148]  # [Start, end]
 fps = 30  # Use lower values for testing (5 or 10), higher values for better quality (30 or 60)
 
 # Convert seconds to frames
@@ -107,7 +107,7 @@ video_path = pipeline.walk(
 #### Run the App Locally
 
 ```python
-from stable_diffusion_videos import StableDiffusionWalkPipeline
+from stable_diffusion_videos import StableDiffusionWalkPipeline, Interface
 import torch
 
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
@@ -139,7 +139,7 @@ You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinnt
 
 First, you'll need to install it...
 
-```
+```bash
 pip install realesrgan
 ```
 
