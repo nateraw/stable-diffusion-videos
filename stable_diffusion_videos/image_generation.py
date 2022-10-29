@@ -80,9 +80,13 @@ def generate_input_batches(pipeline, prompts, seeds, batch_size, height, width):
         noise = torch.randn(
             (1, pipeline.unet.in_channels, height // 8, width // 8),
             device=pipeline.device,
-            generator=torch.Generator(device=pipeline.device).manual_seed(seed),
+            generator=torch.Generator(
+                device="cpu" if pipeline.device.type == "mps" else pipeline.device
+            ).manual_seed(seed),
         )
-        embeds_batch = embeds if embeds_batch is None else torch.cat([embeds_batch, embeds])
+        embeds_batch = (
+            embeds if embeds_batch is None else torch.cat([embeds_batch, embeds])
+        )
         noise_batch = noise if noise_batch is None else torch.cat([noise_batch, noise])
         batch_is_ready = embeds_batch.shape[0] == batch_size or i + 1 == len(prompts)
         if not batch_is_ready:
