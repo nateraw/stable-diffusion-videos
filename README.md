@@ -137,13 +137,9 @@ Enjoy 🤗
 
 You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)!
 
-First, you'll need to install it...
+It's included when you pip install the latest version of `stable-diffusion-videos`! 
 
-```bash
-pip install realesrgan
-```
-
-Then, you'll be able to use `upsample=True` in the `walk` function, like this:
+You'll be able to use `upsample=True` in the `walk` function, like this:
 
 ```python
 pipeline.walk(['a cat', 'a dog'], [234, 345], upsample=True)
