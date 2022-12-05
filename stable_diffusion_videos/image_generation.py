@@ -3,6 +3,7 @@ import random
 import json
 from pathlib import Path
 from huggingface_hub import CommitOperationAdd, create_repo, create_commit
+from diffusers import __version__ as diffusers_version
 import torch
 
 from .upsampling import RealESRGANModel
@@ -170,7 +171,7 @@ def generate_images(
         width=width,
         scheduler=dict(pipeline.scheduler.config),
         tiled=pipeline.tiled,
-        diffusers_version=pipeline.config._diffusers_version,
+        diffusers_version=diffusers_version,
         device_name=torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'unknown',
     )
     prompt_config_path.write_text(json.dumps(cfg, indent=2, sort_keys=False))
