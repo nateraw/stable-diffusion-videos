@@ -10,12 +10,20 @@ import time
 import json
 
 import torch
+from packaging import version
 from diffusers.configuration_utils import FrozenDict
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from diffusers.utils import deprecate, logging
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
+from diffusers.schedulers import (
+    DDIMScheduler,
+    DPMSolverMultistepScheduler,
+    EulerAncestralDiscreteScheduler,
+    EulerDiscreteScheduler,
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+)
 from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
 
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
@@ -166,9 +174,17 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         text_encoder: CLIPTextModel,
         tokenizer: CLIPTokenizer,
         unet: UNet2DConditionModel,
-        scheduler: Union[DDIMScheduler, PNDMScheduler, LMSDiscreteScheduler],
+        scheduler: Union[
+            DDIMScheduler,
+            PNDMScheduler,
+            LMSDiscreteScheduler,
+            EulerDiscreteScheduler,
+            EulerAncestralDiscreteScheduler,
+            DPMSolverMultistepScheduler,
+        ],
         safety_checker: StableDiffusionSafetyChecker,
         feature_extractor: CLIPFeatureExtractor,
+        requires_safety_checker: bool = True,
     ):
         super().__init__()
 
@@ -186,8 +202,21 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             new_config["steps_offset"] = 1
             scheduler._internal_dict = FrozenDict(new_config)
 
-        if safety_checker is None:
-            logger.warn(
+        if hasattr(scheduler.config, "clip_sample") and scheduler.config.clip_sample is True:
+            deprecation_message = (
+                f"The configuration file of this scheduler: {scheduler} has not set the configuration `clip_sample`."
+                " `clip_sample` should be set to False in the configuration file. Please make sure to update the"
+                " config accordingly as not setting `clip_sample` in the config might lead to incorrect results in"
+                " future versions. If you have downloaded this checkpoint from the Hugging Face Hub, it would be very"
+                " nice if you could open a Pull request for the `scheduler/scheduler_config.json` file"
+            )
+            deprecate("clip_sample not set", "1.0.0", deprecation_message, standard_warn=False)
+            new_config = dict(scheduler.config)
+            new_config["clip_sample"] = False
+            scheduler._internal_dict = FrozenDict(new_config)
+
+        if safety_checker is None and requires_safety_checker:
+            logger.warning(
                 f"You have disabled the safety checker for {self.__class__} by passing `safety_checker=None`. Ensure"
                 " that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered"
                 " results in services or applications open to the public. Both the diffusers team and Hugging Face"
@@ -195,6 +224,33 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 " it only for use-cases that involve analyzing network behavior or auditing its results. For more"
                 " information, please have a look at https://github.com/huggingface/diffusers/pull/254 ."
             )
+
+        if safety_checker is not None and feature_extractor is None:
+            raise ValueError(
+                "Make sure to define a feature extractor when loading {self.__class__} if you want to use the safety"
+                " checker. If you do not want to use the safety checker, you can pass `'safety_checker=None'` instead."
+            )
+
+        is_unet_version_less_0_9_0 = hasattr(unet.config, "_diffusers_version") and version.parse(
+            version.parse(unet.config._diffusers_version).base_version
+        ) < version.parse("0.9.0.dev0")
+        is_unet_sample_size_less_64 = hasattr(unet.config, "sample_size") and unet.config.sample_size < 64
+        if is_unet_version_less_0_9_0 and is_unet_sample_size_less_64:
+            deprecation_message = (
+                "The configuration file of the unet has set the default `sample_size` to smaller than"
+                " 64 which seems highly unlikely .If you're checkpoint is a fine-tuned version of any of the"
+                " following: \n- CompVis/stable-diffusion-v1-4 \n- CompVis/stable-diffusion-v1-3 \n-"
+                " CompVis/stable-diffusion-v1-2 \n- CompVis/stable-diffusion-v1-1 \n- runwayml/stable-diffusion-v1-5"
+                " \n- runwayml/stable-diffusion-inpainting \n you should change 'sample_size' to 64 in the"
+                " configuration file. Please make sure to update the config accordingly as leaving `sample_size=32`"
+                " in the config might lead to incorrect results in future versions. If you have downloaded this"
+                " checkpoint from the Hugging Face Hub, it would be very nice if you could open a Pull request for"
+                " the `unet/config.json` file"
+            )
+            deprecate("sample_size<64", "1.0.0", deprecation_message, standard_warn=False)
+            new_config = dict(unet.config)
+            new_config["sample_size"] = 64
+            unet._internal_dict = FrozenDict(new_config)
 
         self.register_modules(
             vae=vae,
@@ -205,6 +261,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             safety_checker=safety_checker,
             feature_extractor=feature_extractor,
         )
+        self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
+        self.register_to_config(requires_safety_checker=requires_safety_checker)
+
 
     def enable_attention_slicing(self, slice_size: Optional[Union[str, int]] = "auto"):
         r"""
@@ -218,9 +277,14 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 `attention_head_dim` must be a multiple of `slice_size`.
         """
         if slice_size == "auto":
-            # half the attention head size is usually a good trade-off between
-            # speed and memory
-            slice_size = self.unet.config.attention_head_dim // 2
+            if isinstance(self.unet.config.attention_head_dim, int):
+                # half the attention head size is usually a good trade-off between
+                # speed and memory
+                slice_size = self.unet.config.attention_head_dim // 2
+            else:
+                # if `attention_head_dim` is a list, take the smallest head size
+                slice_size = min(self.unet.config.attention_head_dim)
+
         self.unet.set_attention_slice(slice_size)
 
     def disable_attention_slicing(self):
@@ -361,7 +425,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             uncond_tokens: List[str]
             if negative_prompt is None:
                 uncond_tokens = [""]
-            elif type(prompt) is not type(negative_prompt):
+            elif text_embeddings is None and type(prompt) is not type(negative_prompt):
                 raise TypeError(
                     f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
                     f" {type(prompt)}."
@@ -524,6 +588,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         image_file_ext: str = ".png",
         T: np.ndarray = None,
         skip: int = 0,
+        negative_prompt: str = None,
     ):
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
@@ -559,6 +624,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                     eta=eta,
                     num_inference_steps=num_inference_steps,
                     output_type="pil" if not upsample else "numpy",
+                    negative_prompt=negative_prompt,
                 )["images"]
 
                 for image in outputs:
@@ -588,6 +654,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         audio_start_sec: Optional[Union[int, float]] = None,
         margin: Optional[float] = 1.0,
         smooth: Optional[float] = 0.0,
+        negative_prompt: Optional[str] = None,
     ):
         """Generate a video from a sequence of prompts and seeds. Optionally, add audio to the
         video to interpolate to the intensity of the audio.
@@ -638,6 +705,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 Margin from librosa hpss to use for audio interpolation.
             smooth (Optional[float], *optional*, defaults to 0.0):
                 Smoothness of the audio interpolation. 1.0 means linear interpolation.
+            negative_prompt (Optional[str], *optional*, defaults to None):
+                Optional negative prompt to use. Same across all prompts.
 
         This function will create sub directories for each prompt and seed pair.
 
@@ -710,6 +779,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                         width=width,
                         audio_filepath=audio_filepath,
                         audio_start_sec=audio_start_sec,
+                        negative_prompt=negative_prompt,
                     ),
                     indent=2,
                     sort_keys=False,
@@ -729,6 +799,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             width = data["width"]
             audio_filepath = data["audio_filepath"]
             audio_start_sec = data["audio_start_sec"]
+            negative_prompt = data.get("negative_prompt", None)
 
         for i, (prompt_a, prompt_b, seed_a, seed_b, num_step) in enumerate(
             zip(prompts, prompts[1:], seeds, seeds[1:], num_interpolation_steps)
@@ -771,7 +842,6 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 width=width,
                 upsample=upsample,
                 batch_size=batch_size,
-                skip=skip,
                 T=get_timesteps_arr(
                     audio_filepath,
                     offset=audio_offset,
@@ -782,6 +852,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 )
                 if audio_filepath
                 else None,
+                skip=skip,
+                negative_prompt=negative_prompt,
             )
             make_video_pyav(
                 save_path,
@@ -805,7 +877,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             sr=44100,
         )
 
-    def embed_text(self, text):
+    def embed_text(self, text, negative_prompt=None):
         """Helper to embed some text"""
         with torch.autocast("cuda"):
             text_input = self.tokenizer(
