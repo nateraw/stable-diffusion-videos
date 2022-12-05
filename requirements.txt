@@ -1,7 +1,8 @@
-transformers
-diffusers==0.6.0
+transformers>=4.21.0
+diffusers==0.9.0
 scipy
 fire
 gradio
 librosa
 av<10.0.0
+realesrgan==0.2.5.0
