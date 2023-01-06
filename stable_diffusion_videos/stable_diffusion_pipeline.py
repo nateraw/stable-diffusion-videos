@@ -549,9 +549,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
     def generate_inputs(self, prompt_a, prompt_b, seed_a, seed_b, noise_shape, T, batch_size):
         embeds_a = self.embed_text(prompt_a)
         embeds_b = self.embed_text(prompt_b)
-
-        latents_a = self.init_noise(seed_a, noise_shape)
-        latents_b = self.init_noise(seed_b, noise_shape)
+        latents_dtype = embeds_a.dtype
+        latents_a = self.init_noise(seed_a, noise_shape, latents_dtype)
+        latents_b = self.init_noise(seed_b, noise_shape, latents_dtype)
 
         batch_idx = 0
         embeds_batch, noise_batch = None, None
@@ -614,24 +614,23 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
 
         frame_index = skip
         for _, embeds_batch, noise_batch in batch_generator:
-            with torch.autocast("cuda"):
-                outputs = self(
-                    latents=noise_batch,
-                    text_embeddings=embeds_batch,
-                    height=height,
-                    width=width,
-                    guidance_scale=guidance_scale,
-                    eta=eta,
-                    num_inference_steps=num_inference_steps,
-                    output_type="pil" if not upsample else "numpy",
-                    negative_prompt=negative_prompt,
-                )["images"]
+            outputs = self(
+                latents=noise_batch,
+                text_embeddings=embeds_batch,
+                height=height,
+                width=width,
+                guidance_scale=guidance_scale,
+                eta=eta,
+                num_inference_steps=num_inference_steps,
+                output_type="pil" if not upsample else "numpy",
+                negative_prompt=negative_prompt,
+            )["images"]
 
-                for image in outputs:
-                    frame_filepath = save_path / (f"frame%06d{image_file_ext}" % frame_index)
-                    image = image if not upsample else self.upsampler(image)
-                    image.save(frame_filepath)
-                    frame_index += 1
+            for image in outputs:
+                frame_filepath = save_path / (f"frame%06d{image_file_ext}" % frame_index)
+                image = image if not upsample else self.upsampler(image)
+                image.save(frame_filepath)
+                frame_index += 1
 
     def walk(
         self,
@@ -879,19 +878,18 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
 
     def embed_text(self, text, negative_prompt=None):
         """Helper to embed some text"""
-        with torch.autocast("cuda"):
-            text_input = self.tokenizer(
-                text,
-                padding="max_length",
-                max_length=self.tokenizer.model_max_length,
-                truncation=True,
-                return_tensors="pt",
-            )
-            with torch.no_grad():
-                embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
+        text_input = self.tokenizer(
+            text,
+            padding="max_length",
+            max_length=self.tokenizer.model_max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+        with torch.no_grad():
+            embed = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return embed
 
-    def init_noise(self, seed, noise_shape):
+    def init_noise(self, seed, noise_shape, dtype):
         """Helper to initialize noise"""
         # randn does not exist on mps, so we create noise on CPU here and move it to the device after initialization
         if self.device.type == "mps":
@@ -905,6 +903,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 noise_shape,
                 device=self.device,
                 generator=torch.Generator(device=self.device).manual_seed(seed),
+                dtype=dtype,
             )
         return noise
 
