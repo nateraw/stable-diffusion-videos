@@ -299,8 +299,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
     def __call__(
         self,
         prompt: Optional[Union[str, List[str]]] = None,
-        height: int = 512,
-        width: int = 512,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
         num_inference_steps: int = 50,
         guidance_scale: float = 7.5,
         negative_prompt: Optional[Union[str, List[str]]] = None,
@@ -371,6 +371,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             list of `bool`s denoting whether the corresponding generated image likely represents "not-safe-for-work"
             (nsfw) content, according to the `safety_checker`.
         """
+        # 0. Default height and width to unet
+        height = height or self.unet.config.sample_size * self.vae_scale_factor
+        width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         if height % 8 != 0 or width % 8 != 0:
             raise ValueError(f"`height` and `width` have to be divisible by 8 but are {height} and {width}.")
@@ -581,8 +584,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         num_inference_steps: int = 50,
         guidance_scale: float = 7.5,
         eta: float = 0.0,
-        height: int = 512,
-        width: int = 512,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
         upsample: bool = False,
         batch_size: int = 1,
         image_file_ext: str = ".png",
@@ -590,6 +593,10 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         skip: int = 0,
         negative_prompt: str = None,
     ):
+        # 0. Default height and width to unet
+        height = height or self.unet.config.sample_size * self.vae_scale_factor
+        width = width or self.unet.config.sample_size * self.vae_scale_factor
+
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
 
@@ -644,8 +651,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         num_inference_steps: Optional[int] = 50,
         guidance_scale: Optional[float] = 7.5,
         eta: Optional[float] = 0.0,
-        height: Optional[int] = 512,
-        width: Optional[int] = 512,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
         upsample: Optional[bool] = False,
         batch_size: Optional[int] = 1,
         resume: Optional[bool] = False,
@@ -685,9 +692,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             eta (Optional[float], *optional*, defaults to 0.0):
                 Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
                 [`schedulers.DDIMScheduler`], will be ignored for others.
-            height (Optional[int], *optional*, defaults to 512):
+            height (Optional[int], *optional*, defaults to None):
                 height of the images to generate.
-            width (Optional[int], *optional*, defaults to 512):
+            width (Optional[int], *optional*, defaults to None):
                 width of the images to generate.
             upsample (Optional[bool], *optional*, defaults to False):
                 When True, upsamples images with realesrgan.
@@ -743,6 +750,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         Returns:
             str: The resulting video filepath. This video includes all sub directories' video clips.
         """
+        # 0. Default height and width to unet
+        height = height or self.unet.config.sample_size * self.vae_scale_factor
+        width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         output_path = Path(output_dir)
 
