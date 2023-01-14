@@ -60,6 +60,26 @@ def flaxop(debug: bool = False):
     print(f"Saved video to {video_path}")
 
 
+@app.command()
+def flax_stable():
+    import jax
+    from flax.jax_utils import replicate
+    from diffusers import FlaxStableDiffusionPipeline
+
+    pipeline, params = FlaxStableDiffusionPipeline.from_pretrained(
+        "CompVis/stable-diffusion-v1-4", revision="bf16", dtype=jax.numpy.bfloat16
+    )
+    # p_params = replicate(params)
+    prng_seed = jax.random.PRNGKey(42)
+    prompt = "a dog with a cat"
+    num_samples = 2
+    # prompt = num_samples * [prompt]
+    prompt_ids = pipeline.prepare_inputs(prompt)
+    print(prompt_ids.shape)
+    images = pipeline(prompt_ids, params, prng_seed, 5, jit=False).images
+    print(images.shape)
+
+
 if __name__ == "__main__":
     # run the app
     app()

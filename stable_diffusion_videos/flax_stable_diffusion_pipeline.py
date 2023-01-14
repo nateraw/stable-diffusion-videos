@@ -36,6 +36,7 @@ logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 # Set to True to use python for loop instead of jax.fori_loop for easier debugging
 DEBUG = False
+NUM_TPU_CORES = jax.device_count()
 
 from .upsampling import RealESRGANModel
 
@@ -73,11 +74,11 @@ def get_timesteps_arr(audio_filepath, offset, duration, fps=30, margin=1.0, smoo
 def slerp(t, v0, v1, DOT_THRESHOLD=0.9995):
     """helper function to spherically interpolate two arrays v1 v2"""
 
-    if not isinstance(v0, np.ndarray):
-        inputs_are_torch = True
-        input_device = v0.device
-        v0 = v0.cpu().numpy()
-        v1 = v1.cpu().numpy()
+    # if not isinstance(v0, np.ndarray):
+    #     inputs_are_torch = True
+    #     input_device = v0.device
+    #     v0 = v0.cpu().numpy()
+    #     v1 = v1.cpu().numpy()
 
     dot = np.sum(v0 * v1 / (np.linalg.norm(v0) * np.linalg.norm(v1)))
     if np.abs(dot) > DOT_THRESHOLD:
@@ -506,12 +507,24 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         if isinstance(guidance_scale, float):
-            # Convert to a tensor so each device gets a copy. Follow the prompt_ids for
-            # shape information, as they may be sharded (when `jit` is `True`), or not.
-            guidance_scale = jnp.array([guidance_scale] * prompt_ids.shape[0])
-            if len(prompt_ids.shape) > 2:
-                # Assume sharded
-                guidance_scale = guidance_scale.reshape(prompt_ids.shape[:2])
+            if prompt_ids is not None:
+                # Convert to a tensor so each device gets a copy. Follow the prompt_ids for
+                # shape information, as they may be sharded (when `jit` is `True`), or not.
+                guidance_scale = jnp.array([guidance_scale] * prompt_ids.shape[0])
+                if len(prompt_ids.shape) > 2:
+                    # Assume sharded
+                    guidance_scale = guidance_scale.reshape(prompt_ids.shape[:2])
+            else:
+                if text_embeddings is None:
+                    raise ValueError(
+                        "If `guidance_scale` is a float, either `prompt_ids` or `text_embeddings` must be provided."
+                    )
+                # Convert to a tensor so each device gets a copy. Follow the text_embeddings for
+                # shape information, as they may be sharded (when `jit` is `True`), or not.
+                guidance_scale = jnp.array([guidance_scale] * text_embeddings.shape[0])
+                if len(text_embeddings.shape) > 3:
+                    # Assume sharded
+                    guidance_scale = guidance_scale.reshape(text_embeddings.shape[:2])
 
         if jit:
             images = _p_generate(
@@ -577,10 +590,10 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         )
 
     def generate_inputs(
-        self, prompt_a, prompt_b, seed_a, seed_b, noise_shape, T, batch_size
+        self, params, prompt_a, prompt_b, seed_a, seed_b, noise_shape, T, batch_size
     ):
-        embeds_a = self.embed_text(prompt_a)
-        embeds_b = self.embed_text(prompt_b)
+        embeds_a = self.embed_text(params, prompt_a)
+        embeds_b = self.embed_text(params, prompt_b)
         latents_dtype = embeds_a.dtype
         latents_a = self.init_noise(seed_a, noise_shape, latents_dtype)
         latents_b = self.init_noise(seed_b, noise_shape, latents_dtype)
@@ -661,18 +674,23 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         seed_b = jax.random.PRNGKey(seed_b)
 
         batch_generator = self.generate_inputs(
+            params,
             prompt_a,
             prompt_b,
             seed_a,
             seed_b,
             (1, self.unet.in_channels, height // 8, width // 8),
             T[skip:],
-            batch_size,
+            batch_size=NUM_TPU_CORES * batch_size,
         )
+
+        # TODO: convert negative_prompt to neg_prompt_ids
 
         frame_index = skip
         for _, embeds_batch, noise_batch in batch_generator:
-
+            if jit:
+                embeds_batch = shard(embeds_batch)
+                noise_batch = shard(noise_batch)
             outputs = self(
                 params,
                 prng_seed=None,
@@ -683,7 +701,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
                 output_type="pil" if not upsample else "numpy",
-                negative_prompt=negative_prompt,
+                neg_prompt_ids=negative_prompt,
                 jit=jit,
             )["images"]
 
@@ -948,15 +966,11 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             sr=44100,
         )
 
-    def embed_text(self, text, params: Union[Dict, FrozenDict], negative_prompt=None):
+    def embed_text(
+        self, params: Union[Dict, FrozenDict], text: str, negative_prompt=None
+    ):
         """Helper to embed some text"""
-        prompt_ids = self.tokenizer(
-            text,
-            padding="max_length",
-            max_length=self.tokenizer.model_max_length,
-            truncation=True,
-            return_tensors="np",
-        )
+        prompt_ids = self.prepare_inputs(text)
         embed = self.text_encoder(prompt_ids, params=params["text_encoder"])[0]
         return embed
 
@@ -991,7 +1005,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
 # Non-static args are (sharded) input tensors mapped over their first dimension (hence, `0`).
 @partial(
     jax.pmap,
-    in_axes=(None, 0, 0, 0, None, None, None, 0, 0, 0),
+    in_axes=(None, 0, 0, 0, None, None, None, 0, 0, 0, 0),
     static_broadcasted_argnums=(0, 4, 5, 6),
 )
 def _p_generate(
@@ -1005,6 +1019,7 @@ def _p_generate(
     guidance_scale,
     latents,
     neg_prompt_ids,
+    text_embeddings,
 ):
     return pipe._generate(
         prompt_ids,
@@ -1016,6 +1031,7 @@ def _p_generate(
         guidance_scale,
         latents,
         neg_prompt_ids,
+        text_embeddings,
     )
 
 
