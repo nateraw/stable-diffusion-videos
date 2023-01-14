@@ -13,7 +13,7 @@ import torch
 from diffusers.models import FlaxAutoencoderKL, FlaxUNet2DConditionModel
 from diffusers.pipeline_flax_utils import FlaxDiffusionPipeline
 from diffusers.pipelines.stable_diffusion import FlaxStableDiffusionPipelineOutput
-from diffusers.pipelines.stable_diffusion.safety_checker import (
+from diffusers.pipelines.stable_diffusion.safety_checker_flax import (
     FlaxStableDiffusionSafetyChecker,
 )
 from diffusers.schedulers import (
