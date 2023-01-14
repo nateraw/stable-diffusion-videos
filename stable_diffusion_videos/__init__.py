@@ -61,7 +61,9 @@ def _attach(package_name, submodules=None, submod_attrs=None):
     else:
         submodules = set(submodules)
 
-    attr_to_modules = {attr: mod for mod, attrs in submod_attrs.items() for attr in attrs}
+    attr_to_modules = {
+        attr: mod for mod, attrs in submod_attrs.items() for attr in attrs
+    }
 
     __all__ = list(submodules | attr_to_modules.keys())
 
@@ -110,6 +112,7 @@ __getattr__, __dir__, __all__ = _attach(
             "make_video_pyav",
             "get_timesteps_arr",
         ],
+        "flax_stable_diffusion_pipeline": ["FlaxStableDiffusionWalkPipeline"],
         "upsampling": ["RealESRGANModel"],
     },
 )
