@@ -41,6 +41,14 @@ NUM_TPU_CORES = jax.device_count()
 from .upsampling import RealESRGANModel
 
 
+def pad_along_axis(array: np.ndarray, pad_size: int, axis: int = 0) -> np.ndarray:
+    if pad_size <= 0:
+        return array
+    npad = [(0, 0)] * array.ndim
+    npad[axis] = (0, pad_size)
+    return np.pad(array, pad_width=npad, mode="constant", constant_values=0)
+
+
 def get_timesteps_arr(audio_filepath, offset, duration, fps=30, margin=1.0, smooth=0.0):
     y, sr = librosa.load(audio_filepath, offset=offset, duration=duration)
 
@@ -578,9 +586,12 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             images = np.asarray(images)
             has_nsfw_concept = False
 
+        if jit:
+            images = unshard(images)
+
         # Convert to PIL
         if output_type == "pil":
-            image = self.numpy_to_pil(image)
+            images = self.numpy_to_pil(images)
 
         if not return_dict:
             return (images, has_nsfw_concept)
@@ -661,27 +672,23 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
                 self.upsampler = RealESRGANModel.from_pretrained("nateraw/real-esrgan")
             self.upsampler.to(self.device)
 
-        # Example usage of the pipeline in TPU
-        # prng_seed = jax.random.PRNGKey(real_seed)
-        # prng_seed = jax.random.split(prng_seed, jax.device_count())
-        # num_samples = jax.device_count()
-        # prompt = num_samples * [prompt]
-        # prompt_ids = pipeline.prepare_inputs(prompt)
-        # prompt_ids = shard(prompt_ids)
-        # images = pipeline(prompt_ids, p_params, prng_seed, num_inference_steps, jit=True).images
-
         seed_a = jax.random.PRNGKey(seed_a)
         seed_b = jax.random.PRNGKey(seed_b)
 
+        text_encoder_params = params["text_encoder"]
+        if jit:  # if jit, asume params are replicated
+            # for encoding de prompts we run it on a single device
+            text_encoder_params = unreplicate(text_encoder_params)
+
         batch_generator = self.generate_inputs(
-            params,
+            text_encoder_params,
             prompt_a,
             prompt_b,
             seed_a,
             seed_b,
             (1, self.unet.in_channels, height // 8, width // 8),
             T[skip:],
-            batch_size=NUM_TPU_CORES * batch_size,
+            batch_size=NUM_TPU_CORES * batch_size if jit else batch_size,
         )
 
         # TODO: convert negative_prompt to neg_prompt_ids
@@ -689,8 +696,17 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         frame_index = skip
         for _, embeds_batch, noise_batch in batch_generator:
             if jit:
+                padded = False
+                # Check if embeds_batch 0 dimension is multiple of NUM_TPU_CORES, if not pad
+                if embeds_batch.shape[0] % NUM_TPU_CORES != 0:
+                    padded = True
+                    pad_size = NUM_TPU_CORES - (embeds_batch.shape[0] % NUM_TPU_CORES)
+                    # Pad embeds_batch and noise_batch with zeros in batch dimension
+                    embeds_batch = pad_along_axis(embeds_batch, pad_size, axis=0)
+                    noise_batch = pad_along_axis(noise_batch, pad_size, axis=0)
                 embeds_batch = shard(embeds_batch)
                 noise_batch = shard(noise_batch)
+
             outputs = self(
                 params,
                 prng_seed=None,
@@ -704,6 +720,11 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
                 neg_prompt_ids=negative_prompt,
                 jit=jit,
             )["images"]
+
+            if jit:
+                # check if we padded and remove that padding from outputs
+                if padded:
+                    outputs = outputs[:-pad_size]
 
             for image in outputs:
                 frame_filepath = save_path / (
@@ -971,7 +992,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
     ):
         """Helper to embed some text"""
         prompt_ids = self.prepare_inputs(text)
-        embed = self.text_encoder(prompt_ids, params=params["text_encoder"])[0]
+        embed = self.text_encoder(prompt_ids, params=params)[0]
         return embed
 
     def init_noise(self, prng_seed, noise_shape, dtype):
