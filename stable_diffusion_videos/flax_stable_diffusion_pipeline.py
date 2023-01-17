@@ -353,7 +353,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             max_length = prompt_ids.shape[-1]
         else:
             batch_size = text_embeddings.shape[0]
-            # TODO: check if this ir enough
+            # TODO: check if this is enough
             max_length = self.tokenizer.model_max_length
 
         if neg_prompt_ids is None:
@@ -514,25 +514,10 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
 
-        if isinstance(guidance_scale, float):
-            if prompt_ids is not None:
-                # Convert to a tensor so each device gets a copy. Follow the prompt_ids for
-                # shape information, as they may be sharded (when `jit` is `True`), or not.
-                guidance_scale = jnp.array([guidance_scale] * prompt_ids.shape[0])
-                if len(prompt_ids.shape) > 2:
-                    # Assume sharded
-                    guidance_scale = guidance_scale.reshape(prompt_ids.shape[:2])
-            else:
-                if text_embeddings is None:
-                    raise ValueError(
-                        "If `guidance_scale` is a float, either `prompt_ids` or `text_embeddings` must be provided."
-                    )
-                # Convert to a tensor so each device gets a copy. Follow the text_embeddings for
-                # shape information, as they may be sharded (when `jit` is `True`), or not.
-                guidance_scale = jnp.array([guidance_scale] * text_embeddings.shape[0])
-                if len(text_embeddings.shape) > 3:
-                    # Assume sharded
-                    guidance_scale = guidance_scale.reshape(text_embeddings.shape[:2])
+        if prompt_ids is None and text_embeddings is None:
+            raise ValueError(
+                "Either `prompt_ids` or `text_embeddings` must be provided."
+            )
 
         if jit:
             images = _p_generate(
@@ -1024,9 +1009,10 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
 
 # Static argnums are pipe, num_inference_steps, height, width. A change would trigger recompilation.
 # Non-static args are (sharded) input tensors mapped over their first dimension (hence, `0`).
+# guidance_scale is a scalar, so it's broadcasted to all devices (hence `None`) without needing to be static.
 @partial(
     jax.pmap,
-    in_axes=(None, 0, 0, 0, None, None, None, 0, 0, 0, 0),
+    in_axes=(None, 0, 0, 0, None, None, None, None, 0, 0, 0),
     static_broadcasted_argnums=(0, 4, 5, 6),
 )
 def _p_generate(
