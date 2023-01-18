@@ -1,6 +1,7 @@
 # stable-diffusion-videos
 
 Try it yourself in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb)
+TPU version (faster): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/charlielito/stable-diffusion-videos/blob/main/flax_stable_diffusion_videos.ipynb)
 
 **Example** - morphing between "blueberry spaghetti" and "strawberry spaghetti"
 
