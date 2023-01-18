@@ -558,7 +558,9 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             images_uint8_casted, has_nsfw_concept = self._run_safety_checker(
                 images_uint8_casted, safety_params, jit
             )
-            images = np.asarray(images)
+            images = np.asarray(images).reshape(
+                num_devices * batch_size, height, width, 3
+            )
 
             # block images
             if any(has_nsfw_concept):
@@ -639,6 +641,10 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         negative_prompt: str = None,
         jit: bool = False,
     ):
+        if negative_prompt is not None:
+            raise NotImplementedError(
+                "Negative prompt is not supported for make_clip_frames yet."
+            )
         # 0. Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
@@ -654,8 +660,14 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
 
         if upsample:
             if getattr(self, "upsampler", None) is None:
+                # TODO: port to flax
                 self.upsampler = RealESRGANModel.from_pretrained("nateraw/real-esrgan")
-            self.upsampler.to(self.device)
+                if not torch.cuda.is_available():
+                    logger.warning(
+                        "Upsampling is recommended to be done on a GPU, as it is very slow on CPU"
+                    )
+                else:
+                    self.upsampler = self.upsampler.cuda()
 
         seed_a = jax.random.PRNGKey(seed_a)
         seed_b = jax.random.PRNGKey(seed_b)
@@ -985,7 +997,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         noise = jax.random.normal(prng_seed, shape=noise_shape, dtype=dtype)
         return noise
 
-    # TODO: what is this?
+    # TODO: port this behavior to flax
     # @classmethod
     # def from_pretrained(cls, *args, tiled=False, **kwargs):
     #     """Same as diffusers `from_pretrained` but with tiled option, which makes images tilable"""
