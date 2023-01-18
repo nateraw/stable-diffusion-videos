@@ -92,7 +92,7 @@ def generate_input_batches(pipeline, prompts, seeds, batch_size, height, width):
         batch_is_ready = embeds_batch.shape[0] == batch_size or i + 1 == len(prompts)
         if not batch_is_ready:
             continue
-        yield batch_idx, embeds_batch, noise_batch
+        yield batch_idx, embeds_batch.type(torch.cuda.HalfTensor), noise_batch.type(torch.cuda.HalfTensor)
         batch_idx += 1
         del embeds_batch, noise_batch
         torch.cuda.empty_cache()
@@ -181,23 +181,22 @@ def generate_images(
     for batch_idx, embeds, noise in generate_input_batches(pipeline, [prompt] * num_images, seeds, batch_size, height, width):
         print(f"Generating batch {batch_idx}")
 
-        with torch.autocast('cuda'):
-            outputs = pipeline(
-                text_embeddings=embeds,
-                latents=noise,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                eta=eta,
-                height=height,
-                width=width,
-                output_type="pil" if not upsample else "numpy",
-            )['images']
-            if upsample:
-                images = []
-                for output in outputs:
-                    images.append(pipeline.upsampler(output))
-            else:
-                images = outputs
+        outputs = pipeline(
+            text_embeddings=embeds,
+            latents=noise,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            eta=eta,
+            height=height,
+            width=width,
+            output_type="pil" if not upsample else "numpy",
+        )['images']
+        if upsample:
+            images = []
+            for output in outputs:
+                images.append(pipeline.upsampler(output))
+        else:
+            images = outputs
 
         for image in images:
             frame_filepath = save_path / f"{seeds[frame_index]}{image_file_ext}"
