@@ -45,6 +45,7 @@ huggingface-cli login
 ```
 
 ### Making Videos
+Note: For Apple M1 architecture, use ```torch.float32``` instead, as ```torch.float16``` is not available on MPS.
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline
