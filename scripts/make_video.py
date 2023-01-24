@@ -111,7 +111,7 @@ def parse_args(parser):
                          f'{len(args.num_interpolation_steps)} != '
                          f'{len(args.prompts)-1}')
     else:
-        args.num_interpolation_steps = 5
+        args.num_interpolation_steps = args.fps*10  # 10 second video
 
     return args
 
