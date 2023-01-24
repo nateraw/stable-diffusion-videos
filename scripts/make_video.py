@@ -93,7 +93,7 @@ def parse_args(parser):
                              f'lengths {len(args.prompts)} and '
                              f'{len(args.seeds)} respectively')
 
-    # set num_interpolation_steps if audio_offsets is provided
+    # set num_interpolation_steps
     if args.audio_offsets is not None \
             and args.num_interpolation_steps is not None:
         raise ValueError('cannot provide both audio_offsets and '
@@ -110,6 +110,8 @@ def parse_args(parser):
                          f'len(prompts)-1, got '
                          f'{len(args.num_interpolation_steps)} != '
                          f'{len(args.prompts)-1}')
+    else:
+        args.num_interpolation_steps = 5
 
     return args
 
