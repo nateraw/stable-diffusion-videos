@@ -4,6 +4,7 @@ import cv2
 from PIL import Image
 from huggingface_hub import hf_hub_download
 from torch import nn
+from diffusers.utils import logging
 
 try:
     from realesrgan import RealESRGANer
@@ -13,6 +14,8 @@ except ImportError as e:
         "You tried to import realesrgan without having it installed properly. To install Real-ESRGAN, run:\n\n"
         "pip install realesrgan"
     )
+
+logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
 class RealESRGANModel(nn.Module):
@@ -83,15 +86,22 @@ class RealESRGANModel(nn.Module):
             file = hf_hub_download(model_name_or_path, "RealESRGAN_x4plus.pth")
         return cls(file)
 
-    def upsample_imagefolder(self, in_dir, out_dir, suffix="out", outfile_ext=".png"):
+    def upsample_imagefolder(self, in_dir, out_dir, suffix="out", outfile_ext=".png", recursive=False, force=False):
         in_dir, out_dir = Path(in_dir), Path(out_dir)
         if not in_dir.exists():
             raise FileNotFoundError(f"Provided input directory {in_dir} does not exist")
 
         out_dir.mkdir(exist_ok=True, parents=True)
 
-        image_paths = [x for x in in_dir.glob("*") if x.suffix.lower() in [".png", ".jpg", ".jpeg"]]
-        for image in image_paths:
+        generator = in_dir.rglob("*") if recursive else in_dir.glob("*")
+        image_paths = [x for x in generator if x.suffix.lower() in [".png", ".jpg", ".jpeg"]]
+        n_img = len(image_paths)
+        for i, image in enumerate(image_paths):
+            out_filepath = out_dir / (str(image.relative_to(in_dir).with_suffix('')) + suffix + outfile_ext)
+            if out_filepath.exists():
+                logger.info(f'[{i}/{n_img}] {out_filepath} already exists')
+                continue
+            logger.info(f'[{i}/{n_img}] upscaling {image}')
             im = self(str(image))
-            out_filepath = out_dir / (image.stem + suffix + outfile_ext)
+            out_filepath.parent.mkdir(parents=True, exist_ok=True)
             im.save(out_filepath)
