@@ -145,7 +145,7 @@ def main():
         upsample=args.upsample,
         batch_size=args.batch_size,
         audio_filepath=args.audio_filepath,
-        audio_start_sec=args.audio_offsets,
+        audio_start_sec=None if args.audio_offsets is None else args.audio_offsets[0],
         negative_prompt=args.negative_prompt,
     )
 
