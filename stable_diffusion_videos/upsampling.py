@@ -98,7 +98,7 @@ class RealESRGANModel(nn.Module):
         n_img = len(image_paths)
         for i, image in enumerate(image_paths):
             out_filepath = out_dir / (str(image.relative_to(in_dir).with_suffix('')) + suffix + outfile_ext)
-            if out_filepath.exists():
+            if not force and out_filepath.exists():
                 logger.info(f'[{i}/{n_img}] {out_filepath} already exists')
                 continue
             logger.info(f'[{i}/{n_img}] upscaling {image}')
