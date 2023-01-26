@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Tuple
 from pathlib import Path
 from torchvision.transforms.functional import pil_to_tensor
 import librosa
@@ -8,6 +8,7 @@ from torchvision.io import write_video
 import numpy as np
 import time
 import json
+import math
 
 import torch
 from packaging import version
@@ -592,6 +593,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         T: np.ndarray = None,
         skip: int = 0,
         negative_prompt: str = None,
+        step: Optional[Tuple[int, int]] = None,
     ):
         # 0. Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
@@ -618,9 +620,17 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             T[skip:],
             batch_size,
         )
+        num_batches = math.ceil(num_interpolation_steps/batch_size)
+
+        log_prefix = '' if step is None else f'[{step[0]}/{step[1]}] '
 
         frame_index = skip
-        for _, embeds_batch, noise_batch in batch_generator:
+        for batch_idx, embeds_batch, noise_batch in batch_generator:
+            if batch_size == 1:
+                msg = f"Generating frame {frame_index}"
+            else:
+                msg = f"Generating frames {frame_index}-{frame_index+embeds_batch.shape[0]-1}"
+            logger.info(f'{log_prefix}[{batch_idx}/{num_batches}] {msg}')
             outputs = self(
                 latents=noise_batch,
                 text_embeddings=embeds_batch,
@@ -863,6 +873,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 else None,
                 skip=skip,
                 negative_prompt=negative_prompt,
+                step=(i, len(prompts)-1),
             )
             make_video_pyav(
                 save_path,
