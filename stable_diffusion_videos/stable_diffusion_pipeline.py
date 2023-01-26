@@ -661,6 +661,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         margin: Optional[float] = 1.0,
         smooth: Optional[float] = 0.0,
         negative_prompt: Optional[str] = None,
+        make_video: Optional[bool] = True,
     ):
         """Generate a video from a sequence of prompts and seeds. Optionally, add audio to the
         video to interpolate to the intensity of the audio.
@@ -864,27 +865,28 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 skip=skip,
                 negative_prompt=negative_prompt,
             )
-            make_video_pyav(
-                save_path,
+            if make_video:
+                make_video_pyav(
+                    save_path,
+                    audio_filepath=audio_filepath,
+                    fps=fps,
+                    output_filepath=step_output_filepath,
+                    glob_pattern=f"*{image_file_ext}",
+                    audio_offset=audio_offset,
+                    audio_duration=audio_duration,
+                    sr=44100,
+                )
+        if make_video:
+            return make_video_pyav(
+                save_path_root,
                 audio_filepath=audio_filepath,
                 fps=fps,
-                output_filepath=step_output_filepath,
-                glob_pattern=f"*{image_file_ext}",
-                audio_offset=audio_offset,
-                audio_duration=audio_duration,
+                audio_offset=audio_start_sec,
+                audio_duration=sum(num_interpolation_steps) / fps,
+                output_filepath=output_filepath,
+                glob_pattern=f"**/*{image_file_ext}",
                 sr=44100,
             )
-
-        return make_video_pyav(
-            save_path_root,
-            audio_filepath=audio_filepath,
-            fps=fps,
-            audio_offset=audio_start_sec,
-            audio_duration=sum(num_interpolation_steps) / fps,
-            output_filepath=output_filepath,
-            glob_pattern=f"**/*{image_file_ext}",
-            sr=44100,
-        )
 
     def embed_text(self, text, negative_prompt=None):
         """Helper to embed some text"""
