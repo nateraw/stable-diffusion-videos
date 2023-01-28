@@ -232,7 +232,6 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             max_length = prompt_ids.shape[-1]
         else:
             batch_size = text_embeddings.shape[0]
-            # TODO: check if this is enough
             max_length = self.tokenizer.model_max_length
 
         if neg_prompt_ids is None:
