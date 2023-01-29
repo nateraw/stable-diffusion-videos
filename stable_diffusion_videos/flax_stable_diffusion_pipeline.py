@@ -519,10 +519,6 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         negative_prompt: str = None,
         jit: bool = False,
     ):
-        if negative_prompt is not None:
-            raise NotImplementedError(
-                "Negative prompt is not supported for make_clip_frames yet."
-            )
         # 0. Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
