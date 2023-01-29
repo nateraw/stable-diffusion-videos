@@ -555,6 +555,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             # for encoding de prompts we run it on a single device
             text_encoder_params = unreplicate(text_encoder_params)
 
+        batch_size_total = NUM_TPU_CORES * batch_size if jit else batch_size
         batch_generator = self.generate_inputs(
             text_encoder_params,
             prompt_a,
@@ -563,10 +564,16 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             seed_b,
             (1, self.unet.in_channels, height // 8, width // 8),
             T[skip:],
-            batch_size=NUM_TPU_CORES * batch_size if jit else batch_size,
+            batch_size=batch_size_total,
         )
 
-        # TODO: convert negative_prompt to neg_prompt_ids
+        negative_prompt_ids = None
+        if negative_prompt is not None:
+            # Replicate negative prompt if jit
+            negative_prompt = [negative_prompt] * batch_size_total
+            negative_prompt_ids = self.prepare_inputs(negative_prompt)
+            if jit:
+                negative_prompt_ids = shard(negative_prompt_ids)
 
         frame_index = skip
         for _, embeds_batch, noise_batch in batch_generator:
@@ -592,7 +599,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
                 output_type="pil" if not upsample else "numpy",
-                neg_prompt_ids=negative_prompt,
+                neg_prompt_ids=negative_prompt_ids,
                 jit=jit,
             )["images"]
 
