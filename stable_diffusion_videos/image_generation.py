@@ -245,6 +245,7 @@ def generate_images_flax(
 
     Args:
         pipeline (StableDiffusionWalkPipeline): The StableDiffusion pipeline instance.
+        params (`Union[Dict, FrozenDict]`): The model parameters.
         prompt (str): The prompt to use for the image generation.
         batch_size (int, *optional*, defaults to 1): The batch size to use for image generation.
         num_batches (int, *optional*, defaults to 1): The number of batches to generate.
@@ -318,7 +319,7 @@ def generate_images_flax(
 
         if jit:
             padded = False
-            # Check if embeds_batch 0 dimension is multiple of NUM_TPU_CORES, if not pad
+            # Check if len of prompt_batch is multiple of NUM_TPU_CORES, if not pad its ids
             if len(prompt_batch) % NUM_TPU_CORES != 0:
                 padded = True
                 pad_size = NUM_TPU_CORES - (len(prompt_batch) % NUM_TPU_CORES)
