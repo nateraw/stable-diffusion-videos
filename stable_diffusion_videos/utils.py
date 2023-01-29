@@ -126,3 +126,11 @@ def make_video_pyav(
         )
 
     return output_filepath
+
+
+def pad_along_axis(array: np.ndarray, pad_size: int, axis: int = 0) -> np.ndarray:
+    if pad_size <= 0:
+        return array
+    npad = [(0, 0)] * array.ndim
+    npad[axis] = (0, pad_size)
+    return np.pad(array, pad_width=npad, mode="constant", constant_values=0)

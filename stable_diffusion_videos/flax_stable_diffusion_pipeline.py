@@ -36,15 +36,7 @@ DEBUG = False
 NUM_TPU_CORES = jax.device_count()
 
 from .upsampling import RealESRGANModel
-from .utils import get_timesteps_arr, make_video_pyav, slerp
-
-
-def pad_along_axis(array: np.ndarray, pad_size: int, axis: int = 0) -> np.ndarray:
-    if pad_size <= 0:
-        return array
-    npad = [(0, 0)] * array.ndim
-    npad[axis] = (0, pad_size)
-    return np.pad(array, pad_width=npad, mode="constant", constant_values=0)
+from .utils import get_timesteps_arr, make_video_pyav, slerp, pad_along_axis
 
 
 class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
@@ -519,10 +511,6 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
         negative_prompt: str = None,
         jit: bool = False,
     ):
-        if negative_prompt is not None:
-            raise NotImplementedError(
-                "Negative prompt is not supported for make_clip_frames yet."
-            )
         # 0. Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
@@ -555,6 +543,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             # for encoding de prompts we run it on a single device
             text_encoder_params = unreplicate(text_encoder_params)
 
+        batch_size_total = NUM_TPU_CORES * batch_size if jit else batch_size
         batch_generator = self.generate_inputs(
             text_encoder_params,
             prompt_a,
@@ -563,10 +552,16 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
             seed_b,
             (1, self.unet.in_channels, height // 8, width // 8),
             T[skip:],
-            batch_size=NUM_TPU_CORES * batch_size if jit else batch_size,
+            batch_size=batch_size_total,
         )
 
-        # TODO: convert negative_prompt to neg_prompt_ids
+        negative_prompt_ids = None
+        if negative_prompt is not None:
+            # Replicate negative prompt if jit
+            negative_prompt = [negative_prompt] * batch_size_total
+            negative_prompt_ids = self.prepare_inputs(negative_prompt)
+            if jit:
+                negative_prompt_ids = shard(negative_prompt_ids)
 
         frame_index = skip
         for _, embeds_batch, noise_batch in batch_generator:
@@ -592,7 +587,7 @@ class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
                 output_type="pil" if not upsample else "numpy",
-                neg_prompt_ids=negative_prompt,
+                neg_prompt_ids=negative_prompt_ids,
                 jit=jit,
             )["images"]
 
