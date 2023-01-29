@@ -36,15 +36,7 @@ DEBUG = False
 NUM_TPU_CORES = jax.device_count()
 
 from .upsampling import RealESRGANModel
-from .utils import get_timesteps_arr, make_video_pyav, slerp
-
-
-def pad_along_axis(array: np.ndarray, pad_size: int, axis: int = 0) -> np.ndarray:
-    if pad_size <= 0:
-        return array
-    npad = [(0, 0)] * array.ndim
-    npad[axis] = (0, pad_size)
-    return np.pad(array, pad_width=npad, mode="constant", constant_values=0)
+from .utils import get_timesteps_arr, make_video_pyav, slerp, pad_along_axis
 
 
 class FlaxStableDiffusionWalkPipeline(FlaxDiffusionPipeline):
