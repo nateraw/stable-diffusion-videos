@@ -87,7 +87,6 @@ torch_dtype = torch.float32 if torch.backends.mps.is_available() else torch.floa
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch_dtype,
-    revision="fp16",
 ).to(device)
 
 # Seconds in the song.
