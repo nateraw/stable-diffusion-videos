@@ -119,7 +119,7 @@ import torch
 
 # For Apple M1 architecture, use MPS backend and  `torch.float32` instead, as `torch.float16` is not available on MPS.
 device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.backends.cuda.is_available() else "cpu"
-torch_dtype = torch.float32 if torch.backends.mps.is_available() else torch.float16
+torch_dtype = torch.float16 if device == "cuda" else torch.float32
 
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
