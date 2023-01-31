@@ -57,7 +57,6 @@ torch_dtype = torch.float16 if device == "cuda" else torch.float32
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch_dtype,
-    revision="fp16",
 ).to(device)
 
 video_path = pipeline.walk(
