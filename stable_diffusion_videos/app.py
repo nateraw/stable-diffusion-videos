@@ -2,7 +2,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from stable_diffusion_videos import generate_images
+from stable_diffusion_videos import generate_images, generate_images_flax
 
 
 class Interface:
@@ -24,7 +24,7 @@ class Interface:
                 # gr.Checkbox(False, label='Push results to Hugging Face Hub'),
                 # gr.Textbox("", label='Hugging Face Repo ID to push images to'),
             ],
-            outputs=gr.Gallery() if self.params is None else gr.Textbox(),
+            outputs=gr.Gallery(),
         )
 
         self.interface_videos = gr.Interface(
@@ -104,11 +104,9 @@ class Interface:
         repo_id=None,
         push_to_hub=False,
     ):
-        if self.params is not None:
-            return "Single image generation is not supported for Flax yet. Go to the videos tab."
-        image_filepaths = generate_images(
-            self.pipeline,
-            prompt,
+        kwargs = dict(
+            pipeline=self.pipeline,
+            prompt=prompt,
             batch_size=batch_size,
             num_batches=num_batches,
             num_inference_steps=num_inference_steps,
@@ -122,6 +120,12 @@ class Interface:
             repo_id=repo_id,
             create_pr=False,
         )
+        generate_images_fn = generate_images
+        if self.params is not None:
+            generate_images_fn = generate_images_flax
+            kwargs.update(dict(params=self.params))
+
+        image_filepaths = generate_images_fn(**kwargs)
         return [(x, Path(x).stem) for x in sorted(image_filepaths)]
 
     def launch(self, *args, **kwargs):

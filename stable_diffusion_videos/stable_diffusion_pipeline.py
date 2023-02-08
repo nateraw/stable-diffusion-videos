@@ -1,22 +1,19 @@
 import inspect
-from typing import Callable, List, Optional, Union, Tuple
-from pathlib import Path
-from torchvision.transforms.functional import pil_to_tensor
-import librosa
-from PIL import Image
-from torchvision.io import write_video
-import numpy as np
-import time
-import json
 import math
+import json
+import time
+from pathlib import Path
+from typing import Callable, List, Optional, Union, Tuple
 
+import numpy as np
 import torch
-from packaging import version
 from diffusers.configuration_utils import FrozenDict
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.pipeline_utils import DiffusionPipeline
-from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
-from diffusers.utils import deprecate, logging
+from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
+from diffusers.pipelines.stable_diffusion.safety_checker import (
+    StableDiffusionSafetyChecker,
+)
 from diffusers.schedulers import (
     DDIMScheduler,
     DPMSolverMultistepScheduler,
@@ -25,122 +22,15 @@ from diffusers.schedulers import (
     LMSDiscreteScheduler,
     PNDMScheduler,
 )
-from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
-
-from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
+from diffusers.utils import deprecate, logging
+from packaging import version
 from torch import nn
+from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 
 from .upsampling import RealESRGANModel
+from .utils import get_timesteps_arr, make_video_pyav, slerp
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
-
-
-def get_timesteps_arr(audio_filepath, offset, duration, fps=30, margin=1.0, smooth=0.0):
-    y, sr = librosa.load(audio_filepath, offset=offset, duration=duration)
-
-    # librosa.stft hardcoded defaults...
-    # n_fft defaults to 2048
-    # hop length is win_length // 4
-    # win_length defaults to n_fft
-    D = librosa.stft(y, n_fft=2048, hop_length=2048 // 4, win_length=2048)
-
-    # Extract percussive elements
-    D_harmonic, D_percussive = librosa.decompose.hpss(D, margin=margin)
-    y_percussive = librosa.istft(D_percussive, length=len(y))
-
-    # Get normalized melspectrogram
-    spec_raw = librosa.feature.melspectrogram(y=y_percussive, sr=sr)
-    spec_max = np.amax(spec_raw, axis=0)
-    spec_norm = (spec_max - np.min(spec_max)) / np.ptp(spec_max)
-
-    # Resize cumsum of spec norm to our desired number of interpolation frames
-    x_norm = np.linspace(0, spec_norm.shape[-1], spec_norm.shape[-1])
-    y_norm = np.cumsum(spec_norm)
-    y_norm /= y_norm[-1]
-    x_resize = np.linspace(0, y_norm.shape[-1], int(duration*fps))
-
-    T = np.interp(x_resize, x_norm, y_norm)
-
-    # Apply smoothing
-    return T * (1 - smooth) + np.linspace(0.0, 1.0, T.shape[0]) * smooth
-
-
-def slerp(t, v0, v1, DOT_THRESHOLD=0.9995):
-    """helper function to spherically interpolate two arrays v1 v2"""
-
-    if not isinstance(v0, np.ndarray):
-        inputs_are_torch = True
-        input_device = v0.device
-        v0 = v0.cpu().numpy()
-        v1 = v1.cpu().numpy()
-
-    dot = np.sum(v0 * v1 / (np.linalg.norm(v0) * np.linalg.norm(v1)))
-    if np.abs(dot) > DOT_THRESHOLD:
-        v2 = (1 - t) * v0 + t * v1
-    else:
-        theta_0 = np.arccos(dot)
-        sin_theta_0 = np.sin(theta_0)
-        theta_t = theta_0 * t
-        sin_theta_t = np.sin(theta_t)
-        s0 = np.sin(theta_0 - theta_t) / sin_theta_0
-        s1 = sin_theta_t / sin_theta_0
-        v2 = s0 * v0 + s1 * v1
-
-    if inputs_are_torch:
-        v2 = torch.from_numpy(v2).to(input_device)
-
-    return v2
-
-
-def make_video_pyav(
-    frames_or_frame_dir: Union[str, Path, torch.Tensor],
-    audio_filepath: Union[str, Path] = None,
-    fps: int = 30,
-    audio_offset: int = 0,
-    audio_duration: int = 2,
-    sr: int = 22050,
-    output_filepath: Union[str, Path] = "output.mp4",
-    glob_pattern: str = "*.png",
-):
-    """
-    TODO - docstring here
-
-    frames_or_frame_dir: (Union[str, Path, torch.Tensor]):
-        Either a directory of images, or a tensor of shape (T, C, H, W) in range [0, 255].
-    """
-
-    # Torchvision write_video doesn't support pathlib paths
-    output_filepath = str(output_filepath)
-
-    if isinstance(frames_or_frame_dir, (str, Path)):
-        frames = None
-        for img in sorted(Path(frames_or_frame_dir).glob(glob_pattern)):
-            frame = pil_to_tensor(Image.open(img)).unsqueeze(0)
-            frames = frame if frames is None else torch.cat([frames, frame])
-    else:
-        frames = frames_or_frame_dir
-
-    # TCHW -> THWC
-    frames = frames.permute(0, 2, 3, 1)
-
-    if audio_filepath:
-        # Read audio, convert to tensor
-        audio, sr = librosa.load(audio_filepath, sr=sr, mono=True, offset=audio_offset, duration=audio_duration)
-        audio_tensor = torch.tensor(audio).unsqueeze(0)
-
-        write_video(
-            output_filepath,
-            frames,
-            fps=fps,
-            audio_array=audio_tensor,
-            audio_fps=sr,
-            audio_codec="aac",
-            options={"crf": "10", "pix_fmt": "yuv420p"},
-        )
-    else:
-        write_video(output_filepath, frames, fps=fps, options={"crf": "10", "pix_fmt": "yuv420p"})
-
-    return output_filepath
 
 
 class StableDiffusionWalkPipeline(DiffusionPipeline):
@@ -264,7 +154,6 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         )
         self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
         self.register_to_config(requires_safety_checker=requires_safety_checker)
-
 
     def enable_attention_slicing(self, slice_size: Optional[Union[str, int]] = "auto"):
         r"""
@@ -470,16 +359,29 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         # Unlike in other pipelines, latents need to be generated in the target device
         # for 1-to-1 results reproducibility with the CompVis implementation.
         # However this currently doesn't work in `mps`.
-        latents_shape = (batch_size * num_images_per_prompt, self.unet.in_channels, height // 8, width // 8)
+        latents_shape = (
+            batch_size * num_images_per_prompt,
+            self.unet.in_channels,
+            height // 8,
+            width // 8,
+        )
         latents_dtype = text_embeddings.dtype
         if latents is None:
             if self.device.type == "mps":
                 # randn does not exist on mps
-                latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-                    self.device
-                )
+                latents = torch.randn(
+                    latents_shape,
+                    generator=generator,
+                    device="cpu",
+                    dtype=latents_dtype,
+                ).to(self.device)
             else:
-                latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+                latents = torch.randn(
+                    latents_shape,
+                    generator=generator,
+                    device=self.device,
+                    dtype=latents_dtype,
+                )
         else:
             if latents.shape != latents_shape:
                 raise ValueError(f"Unexpected latents shape, got {latents.shape}, expected {latents_shape}")
@@ -533,11 +435,10 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         image = image.cpu().permute(0, 2, 3, 1).float().numpy()
 
         if self.safety_checker is not None:
-            safety_checker_input = self.feature_extractor(self.numpy_to_pil(image), return_tensors="pt").to(
-                self.device
-            )
+            safety_checker_input = self.feature_extractor(self.numpy_to_pil(image), return_tensors="pt").to(self.device)
             image, has_nsfw_concept = self.safety_checker(
-                images=image, clip_input=safety_checker_input.pixel_values.to(text_embeddings.dtype)
+                images=image,
+                clip_input=safety_checker_input.pixel_values.to(text_embeddings.dtype),
             )
         else:
             has_nsfw_concept = None
@@ -916,8 +817,8 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         if self.device.type == "mps":
             noise = torch.randn(
                 noise_shape,
-                device='cpu',
-                generator=torch.Generator(device='cpu').manual_seed(seed),
+                device="cpu",
+                generator=torch.Generator(device="cpu").manual_seed(seed),
             ).to(self.device)
         else:
             noise = torch.randn(
