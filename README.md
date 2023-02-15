@@ -45,17 +45,19 @@ huggingface-cli login
 ```
 
 ### Making Videos
-Note: For Apple M1 architecture, use ```torch.float32``` instead, as ```torch.float16``` is not available on MPS.
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline
 import torch
 
+# For Apple M1 architecture, use MPS backend and  `torch.float32` instead, as `torch.float16` is not available on MPS.
+device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.backends.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if device == "cuda" else torch.float32
+
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    torch_dtype=torch.float16,
-    revision="fp16",
-).to("cuda")
+    torch_dtype=torch_dtype,
+).to(device)
 
 video_path = pipeline.walk(
     prompts=['a cat', 'a dog'],
@@ -78,12 +80,14 @@ video_path = pipeline.walk(
 from stable_diffusion_videos import StableDiffusionWalkPipeline
 import torch
 
+# For Apple M1 architecture, use MPS backend and  `torch.float32` instead, as `torch.float16` is not available on MPS.
+device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.backends.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if device == "cuda" else torch.float32
+
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    torch_dtype=torch.float16,
-    revision="fp16",
-).to("cuda")
-
+    torch_dtype=torch_dtype,
+).to(device)
 
 # Seconds in the song.
 audio_offsets = [146, 148]  # [Start, end]
@@ -113,11 +117,14 @@ video_path = pipeline.walk(
 from stable_diffusion_videos import StableDiffusionWalkPipeline, Interface
 import torch
 
+# For Apple M1 architecture, use MPS backend and  `torch.float32` instead, as `torch.float16` is not available on MPS.
+device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.backends.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if device == "cuda" else torch.float32
+
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    torch_dtype=torch.float16,
-    revision="fp16",
-).to("cuda")
+    torch_dtype=torch_dtype,
+).to(device)
 
 interface = Interface(pipeline)
 interface.launch()
