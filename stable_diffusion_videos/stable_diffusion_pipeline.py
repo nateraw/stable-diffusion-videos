@@ -776,7 +776,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 else None,
                 skip=skip,
                 negative_prompt=negative_prompt,
-                step=(i, len(prompts)-1),
+                step=(i, len(prompts) - 1),
             )
             make_video_pyav(
                 save_path,
