@@ -714,6 +714,9 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 Smoothness of the audio interpolation. 1.0 means linear interpolation.
             negative_prompt (Optional[str], *optional*, defaults to None):
                 Optional negative prompt to use. Same across all prompts.
+            make_video (Optional[bool], *optional*, defaults to True):
+                When True, makes a video from the generated frames. If False, only
+                generates the frames.
 
         This function will create sub directories for each prompt and seed pair.
 
