@@ -107,7 +107,7 @@ video_path = pipeline.walk(
 )
 ```
 
-#### Run the App Locally
+### Run the App Locally
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline, Interface
@@ -121,6 +121,13 @@ pipeline = StableDiffusionWalkPipeline.from_pretrained(
 
 interface = Interface(pipeline)
 interface.launch()
+```
+
+### CLI
+
+The script `scripts/make_video.py` also provides a CLI. Example:
+```bash
+python scripts/make_video.py --prompts "a cat" "a dog" --fps 10
 ```
 
 ## Credits
