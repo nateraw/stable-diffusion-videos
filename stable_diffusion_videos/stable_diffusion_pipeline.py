@@ -30,7 +30,9 @@ from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 from .upsampling import RealESRGANModel
 from .utils import get_timesteps_arr, make_video_pyav, slerp
 
-logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
+
+logging.set_verbosity_info()
+logger = logging.get_logger(__name__)
 
 
 class StableDiffusionWalkPipeline(DiffusionPipeline):
