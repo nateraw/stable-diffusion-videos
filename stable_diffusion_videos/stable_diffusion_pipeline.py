@@ -1,8 +1,9 @@
 import inspect
+import math
 import json
 import time
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Tuple
 
 import numpy as np
 import torch
@@ -29,7 +30,9 @@ from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 from .upsampling import RealESRGANModel
 from .utils import get_timesteps_arr, make_video_pyav, slerp
 
-logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
+
+logging.set_verbosity_info()
+logger = logging.get_logger(__name__)
 
 
 class StableDiffusionWalkPipeline(DiffusionPipeline):
@@ -494,6 +497,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
         T: np.ndarray = None,
         skip: int = 0,
         negative_prompt: str = None,
+        step: Optional[Tuple[int, int]] = None,
     ):
         # 0. Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
@@ -520,9 +524,17 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
             T[skip:],
             batch_size,
         )
+        num_batches = math.ceil(num_interpolation_steps/batch_size)
+
+        log_prefix = '' if step is None else f'[{step[0]}/{step[1]}] '
 
         frame_index = skip
-        for _, embeds_batch, noise_batch in batch_generator:
+        for batch_idx, embeds_batch, noise_batch in batch_generator:
+            if batch_size == 1:
+                msg = f"Generating frame {frame_index}"
+            else:
+                msg = f"Generating frames {frame_index}-{frame_index+embeds_batch.shape[0]-1}"
+            logger.info(f'{log_prefix}[{batch_idx}/{num_batches}] {msg}')
             outputs = self(
                 latents=noise_batch,
                 text_embeddings=embeds_batch,
@@ -765,6 +777,7 @@ class StableDiffusionWalkPipeline(DiffusionPipeline):
                 else None,
                 skip=skip,
                 negative_prompt=negative_prompt,
+                step=(i, len(prompts) - 1),
             )
             make_video_pyav(
                 save_path,
