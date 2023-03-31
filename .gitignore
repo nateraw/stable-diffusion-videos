@@ -134,3 +134,6 @@ images
 run.py
 test_outputs
 examples/music
+test
+.vscode
+.cog
