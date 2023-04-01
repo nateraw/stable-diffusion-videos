@@ -14,6 +14,7 @@ build:
     - "librosa"
     - "av<10.0.0"
     - "realesrgan==0.2.5.0"
+    - "accelerate==0.15.0"
   run:
     - apt-get update && apt-get install -y software-properties-common
     - add-apt-repository ppa:ubuntu-toolchain-r/test

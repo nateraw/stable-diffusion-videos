@@ -137,3 +137,4 @@ examples/music
 test
 .vscode
 .cog
+diffusers-cache

@@ -125,6 +125,19 @@ interface = Interface(pipeline)
 interface.launch()
 ```
 
+#### Run with cog 
+
+First, download the pre-trained weights:
+```bash
+cog run scripts/download_weights 
+```
+
+Run a prediction. Separate each prompt with a `|`
+```bash
+cog predict -i prompts="a cat | a dog | a horse"
+```
+
+
 ## Credits
 
 This work built off of [a script](https://gist.github.com/karpathy/00103b0037c5aaea32fe1da1af553355

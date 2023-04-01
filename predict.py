@@ -9,6 +9,7 @@ from diffusers.schedulers import LMSDiscreteScheduler
 from stable_diffusion_videos import StableDiffusionWalkPipeline
 
 MODEL_ID = "runwayml/stable-diffusion-v1-5"
+MODEL_VAE = "stabilityai/sd-vae-ft-ema"
 MODEL_CACHE = "diffusers-cache"
 
 
@@ -17,13 +18,16 @@ class Predictor(BasePredictor):
         """Load the model into memory to make running multiple predictions efficient"""
         print("Loading pipeline...")
 
+        vae = AutoencoderKL.from_pretrained(MODEL_VAE, cache_dir=MODEL_CACHE, local_files_only=True)
+
         self.pipeline = StableDiffusionWalkPipeline.from_pretrained(
             MODEL_ID,
-            vae=AutoencoderKL.from_pretrained(f"stabilityai/sd-vae-ft-ema"),
+            vae=vae,
             torch_dtype=torch.float16,
             revision="fp16",
             safety_checker=None,
             cache_dir=MODEL_CACHE,
+            local_files_only=True,
             scheduler=LMSDiscreteScheduler(
                 beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
             )
