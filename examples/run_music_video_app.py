@@ -15,21 +15,23 @@ from stable_diffusion_videos import StableDiffusionWalkPipeline, generate_images
 
 from diffusers.models import AutoencoderKL
 from diffusers.schedulers import LMSDiscreteScheduler
+from diffusers.utils.import_utils import is_xformers_available
 import torch
 import youtube_dl
 import os
 
 pipe = StableDiffusionWalkPipeline.from_pretrained(
     'runwayml/stable-diffusion-v1-5',
-    vae=AutoencoderKL.from_pretrained(f"stabilityai/sd-vae-ft-ema"),
     torch_dtype=torch.float16,
-    revision="fp16",
     safety_checker=None,
+    vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=torch.float16).to("cuda"),
     scheduler=LMSDiscreteScheduler(
         beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear"
     )
 ).to("cuda")
 
+if is_xformers_available():
+    pipe.enable_xformers_memory_efficient_attention()
 
 def download_example_clip(url, output_dir='./', output_filename='%(title)s.%(ext)s'):
     if (Path(output_dir) / output_filename).exists():
@@ -284,7 +286,7 @@ with gr.Blocks() as demo:
         inputs=audio,
         outputs=[audio_start_sec, duration],
         fn=on_audio_change_or_clear,
-        cache_examples=True
+        cache_examples=False
     )
     audio.change(on_audio_change_or_clear, audio, [audio_start_sec, duration])
     audio.clear(on_audio_change_or_clear, audio, [audio_start_sec, duration])

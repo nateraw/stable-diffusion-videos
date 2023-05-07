@@ -6,3 +6,5 @@ gradio
 librosa
 av<10.0.0
 realesrgan==0.2.5.0
+protobuf==3.20.*
+fsspec>=2023.4.0
