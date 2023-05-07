@@ -8,43 +8,18 @@ TPU version (~x6 faster than standard colab GPUs): [![Open In Colab](https://col
 
 https://user-images.githubusercontent.com/32437151/188721341-6f28abf9-699b-46b0-a72e-fa2a624ba0bb.mp4
 
-# How it Works
-
-## The Notebook/App
-
-The [in-browser Colab demo](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb) allows you to generate videos by interpolating the latent space of [Stable Diffusion](https://github.com/CompVis/stable-diffusion).
-
-You can either dream up different versions of the same prompt, or morph between different text prompts (with seeds set for each for reproducibility).
-
-The app is built with [Gradio](https://gradio.app/), which allows you to interact with the model in a web app. Here's how I suggest you use it:
-
-1. Use the "Images" tab to generate images you like.
-    - Find two images you want to morph between
-    - These images should use the same settings (guidance scale, scheduler, height, width)
-    - Keep track of the seeds/settings you used so you can reproduce them
-
-2. Generate videos using the "Videos" tab
-    - Using the images you found from the step above, provide the prompts/seeds you recorded
-    - Set the `num_interpolation_steps` - for testing you can use a small number like 3 or 5, but to get great results you'll want to use something larger (60-200 steps). 
-    - You can set the `output_dir` to the directory you wish to save to
-
-## Python Package
-
-### Setup
-
-Install the package
+## Installation
 
 ```bash
-pip install -U stable_diffusion_videos
+pip install stable_diffusion_videos
 ```
 
-Authenticate with Hugging Face
+## Usage
 
-```bash
-huggingface-cli login
-```
+Check out the [examples](./examples) folder for example scripts 👀
 
 ### Making Videos
+
 Note: For Apple M1 architecture, use ```torch.float32``` instead, as ```torch.float16``` is not available on MPS.
 
 ```python
@@ -54,7 +29,6 @@ import torch
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch.float16,
-    revision="fp16",
 ).to("cuda")
 
 video_path = pipeline.walk(
@@ -81,9 +55,7 @@ import torch
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch.float16,
-    revision="fp16",
 ).to("cuda")
-
 
 # Seconds in the song.
 audio_offsets = [146, 148]  # [Start, end]
@@ -107,7 +79,7 @@ video_path = pipeline.walk(
 )
 ```
 
-#### Run the App Locally
+### Using the UI
 
 ```python
 from stable_diffusion_videos import StableDiffusionWalkPipeline, Interface
@@ -116,7 +88,6 @@ import torch
 pipeline = StableDiffusionWalkPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     torch_dtype=torch.float16,
-    revision="fp16",
 ).to("cuda")
 
 interface = Interface(pipeline)
