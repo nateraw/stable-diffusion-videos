@@ -128,9 +128,16 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Cog/Replicate generated files
+test
+.cog
+diffusers-cache
+cog_out
+
 # Extra stuff to ignore
 dreams
 images
 run.py
 test_outputs
 examples/music
+.vscode

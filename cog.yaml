@@ -1,0 +1,22 @@
+build:
+  gpu: true
+  cuda: "11.6.2"
+  python_version: "3.10"
+  python_packages:
+    - "torch==1.13.1 --extra-index-url=https://download.pytorch.org/whl/cu116"
+    - "ftfy==6.1.1"
+    - "scipy==1.9.0"
+    - "transformers==4.21.1"
+    - "diffusers==0.11.1"
+    - "fire==0.4.0"
+    - "ipython==8.5.0"
+    - "gradio"
+    - "librosa"
+    - "av<10.0.0"
+    - "realesrgan==0.2.5.0"
+    - "accelerate==0.15.0"
+  run:
+    - apt-get update && apt-get install -y software-properties-common
+    - add-apt-repository ppa:ubuntu-toolchain-r/test
+    - apt update -y && apt-get install ffmpeg -y
+predict: "predict.py:Predictor"

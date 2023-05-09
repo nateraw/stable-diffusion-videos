@@ -2,6 +2,8 @@
 
 Try it yourself in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/stable_diffusion_videos.ipynb)
 
+Try in Replicate: [![Replicate](https://replicate.com/nateraw/stable-diffusion-videos/badge)](https://replicate.com/nateraw/stable-diffusion-videos)
+
 TPU version (~x6 faster than standard colab GPUs): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nateraw/stable-diffusion-videos/blob/main/flax_stable_diffusion_videos.ipynb)
 
 **Example** - morphing between "blueberry spaghetti" and "strawberry spaghetti"
@@ -93,6 +95,19 @@ pipeline = StableDiffusionWalkPipeline.from_pretrained(
 interface = Interface(pipeline)
 interface.launch()
 ```
+
+#### Run with cog 
+
+First, download the pre-trained weights:
+```bash
+cog run scripts/download_weights 
+```
+
+Run a prediction. Separate each prompt with a `|`
+```bash
+cog predict -i prompts="a cat | a dog | a horse"
+```
+
 
 ## Credits
 
