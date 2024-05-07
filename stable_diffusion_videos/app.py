@@ -2,7 +2,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from stable_diffusion_videos import generate_images, generate_images_flax
+from .image_generation import generate_images, generate_images_flax
 
 
 class Interface:

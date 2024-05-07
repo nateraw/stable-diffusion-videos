@@ -118,4 +118,4 @@ __getattr__, __dir__, __all__ = _attach(
     },
 )
 
-__version__ = "0.8.1"
+__version__ = "0.9.0"
