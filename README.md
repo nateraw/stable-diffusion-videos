@@ -104,9 +104,10 @@ This work built off of [a script](https://gist.github.com/karpathy/00103b0037c5a
 You can file any issues/feature requests [here](https://github.com/nateraw/stable-diffusion-videos/issues)
 
 Enjoy 🤗
+<!--Commenting this section out for now, as there are issues with RealESRGAN python package-->
+<!--
 
 ## Extras
-
 ### Upsample with Real-ESRGAN
 
 You can also 4x upsample your images with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)!
@@ -138,5 +139,5 @@ from stable_diffusion_videos import RealESRGANModel
 model = RealESRGANModel.from_pretrained('nateraw/real-esrgan')
 model.upsample_imagefolder('path/to/images/', 'path/to/output_dir')
 ```
-
+-->
 
