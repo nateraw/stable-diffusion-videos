@@ -6,14 +6,6 @@ from huggingface_hub import hf_hub_download
 from torch import nn
 from diffusers.utils import logging
 
-try:
-    from realesrgan import RealESRGANer
-    from basicsr.archs.rrdbnet_arch import RRDBNet
-except ImportError as e:
-    raise ImportError(
-        "You tried to import realesrgan without having it installed properly. To install Real-ESRGAN, run:\n\n"
-        "pip install realesrgan"
-    )
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
