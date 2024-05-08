@@ -1,0 +1,72 @@
+[project]
+name = "stable_diffusion_videos"
+description = "Create 🔥 videos with Stable Diffusion by exploring the latent space and morphing between text prompts."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+   {name = "Nathan Raw", email = 'naterawdata@gmail.com'},
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "transformers>=4.21.0",
+  "diffusers",
+  "scipy",
+  "fire",
+  "gradio",
+  "librosa",
+  "av<10.0.0",
+  "realesrgan",
+  "protobuf==3.20.*",
+  "fsspec>=2023.4.0",
+]
+[project.urls]
+Source = "https://github.com/nateraw/stable-diffusion-videos"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "stable_diffusion_videos.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["stable_diffusion_videos*"]  # package names should match these glob patterns (["*"] by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[build-system]
+requires = [
+  "setuptools",
+  "wheel",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--color=yes"
+]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 79
+# Enable Pyflakes `E` and `F` codes by default.
+lint.select = [
+    "E",
+    "W", # see: https://pypi.org/project/pycodestyle
+    "F", # see: https://pypi.org/project/pyflakes
+    "I", #see: https://pypi.org/project/isort/
+    "RUF100" # alternative to yesqa
+]
+lint.ignore-init-module-imports = true
+lint.unfixable = ["F401"]
+
+[tool.ruff.pydocstyle]
+# Use Google-style docstrings.
+convention = "google"
+
+[tool.ruff.pycodestyle]
+ignore-overlong-task-comments = true
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
